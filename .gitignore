@@ -1,2 +1,11 @@
 # Ignore object files 
 *.o
+
+# Ignore coredumps
+vgcore*
+
+# Ignore LSP cache
+.ccls-cache/
+
+# Ignore all these output binaries
+trie
