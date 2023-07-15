@@ -1,12 +1,11 @@
 /*
- * NODE
- * Trie Node
+ * TRIE
  */
 
 
 
-#ifndef __NODE_HPP
-#define __NODE_HPP
+#ifndef __TRIE_HPP
+#define __TRIE_HPP
 
 #include <array>
 #include <map>
@@ -71,4 +70,4 @@ class TrieArray
 };
 
 
-#endif /*__NODE_HPP*/
+#endif /*__TRIE_HPP*/

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "Node.hpp"     // TODO: change this name
+#include "Trie.hpp"     // TODO: change this name
 
 
 int main(int argc, char* argv[])

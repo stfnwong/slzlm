@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "Node.hpp"
+#include "Trie.hpp"
 
 
 TEST_CASE("test_search", "map_trie")

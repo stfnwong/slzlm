@@ -1,9 +1,9 @@
 /*
- * NODE
+ * TRIE
  * Trie Node
  */
 
-#include "Node.hpp"
+#include "Trie.hpp"
 
 
 
