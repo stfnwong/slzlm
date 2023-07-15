@@ -1,8 +1,8 @@
 # This is really a test of whether we can import the Trie objects and use them in python.
 
+from slz import Trie
 
 def test_trie():
-    from slz import Trie
 
     inputs = ["fuck", "your", "couch", "conch", "counter", "country", "cause", "company", "charlie", "murphy"]
 

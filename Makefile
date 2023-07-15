@@ -73,12 +73,19 @@ $(PROGRAMS): $(OBJECTS) $(PROGRAM_OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(OBJ_DIR)/$@.o \
 		$(INCS) -o $@ $(LIBS)
 
+
+
+
+# ==== PYTHON TARGETS ==== #
+python:
+	python setup.py build_ext 
+
 # Main targets 
 #
-.PHONY: all test programs clean
+.PHONY: all test programs clean python
 
 
-all : test programs
+all : test programs python
 
 test : $(OBJECTS) $(TESTS)
 
@@ -90,6 +97,9 @@ clean:
 	rm -fv *.o $(OBJ_DIR)/*.o 
 	# Clean test programs
 	rm -fv $(TEST_BIN_DIR)/test_*
+	@find . -name '*.so' -exec rm -rf {} \;
+	@find . -name '__pycache__' -exec rm -rf {} \;
+
 
 print-%:
 	@echo $* = $($*)
