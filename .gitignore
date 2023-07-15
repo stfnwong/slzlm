@@ -9,3 +9,10 @@ vgcore*
 
 # Ignore all these output binaries
 trie
+
+# Ignore python stuff
+*.pyc
+__pycache__
+
+# Ignore shared object files
+*.so

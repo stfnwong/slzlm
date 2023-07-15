@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "lz"
+name = "slz"
 version = "0.1.0"
 description = "LEMPEL-ZIV"
 authors = ["Stefan Wong <stfnwong@gmail.com>"]

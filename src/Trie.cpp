@@ -88,13 +88,16 @@ bool TrieArray::search(const std::string_view word) const
 // Python binding test
 namespace py = pybind11;
 
-PYBIND11_PLUGIN(trie_test) {
+
+PYBIND11_MODULE(slz, m)
+{
     //py::module_::create_extension_module m("slz", "Trie");
-    py::module_ m("slz", "Trie");
+    //py::module_ m("slz", "Trie");
     py::class_ <Trie>(m, "Trie")
         .def(py::init<>())
         .def("insert", &Trie::insert)
         .def("search", &Trie::search);
 
-    return m.ptr();
+    
+    //return m.ptr();
 }

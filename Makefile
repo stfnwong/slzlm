@@ -12,8 +12,8 @@ PROGRAM_DIR=programs
 # Pybind stuff
 PYTHON_VERSION=3.11
 PYTHON_DIR=/usr/include/python$(PYTHON_VERSION)/
-PYTHON_CFLAGS=$(shell python3-config --cflags)
-PYTHON_LDFLAGS=$(shell python3-config --ldflags)
+PYTHON_CFLAGS=$(shell python$$PYTHON_VERSION-config --cflags)
+PYTHON_LDFLAGS=$(shell python$$PYTHON_VERSION-config --ldflags)
 
 # Tool options
 CXX=g++
@@ -21,7 +21,7 @@ OPT=-O0
 #CXXFLAGS=-Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared $(PYTHON_CFLAGS)
 CXXFLAGS=$(PYTHON_CFLAGS) -Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared 
 TESTFLAGS=
-LDFLAGS=$(PYTHON_LDFLAGS)
+LDFLAGS=$(PYTHON_LDFLAGS) -lpython3.11
 LIBS= 
 TEST_LIBS=
 
@@ -29,7 +29,7 @@ TEST_LIBS=
 ASM_STYLE=intel
 
 # Object targets
-INCS=-I$(SRC_DIR)
+INCS=-I$(SRC_DIR) $(shell python$PYTHON_VERSION-config --includes)
 #INCS=-I$(SRC_DIR) -I$(PYTHON_DIR)
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 HEADERS = $(wildcard $(SRC_DIR)/*.hpp)
@@ -58,7 +58,7 @@ $(TEST_OBJECTS): $(OBJ_DIR)/%.o : $(TEST_DIR)/%.cpp $(HEADERS)
 TESTS=test_map_trie test_array_trie
 
 $(TESTS): $(TEST_OBJECTS) $(OBJECTS)
-	$(CXX) $(LDFLAGS) $(OBJECTS) $(OBJ_DIR)/$@.o\
+	$(CXX) $(LDFLAGS) $(OBJECTS) $(OBJ_DIR)/$@.o $(INCS) \
 		-o $(TEST_BIN_DIR)/$@ $(LIBS) $(TEST_LIBS)
 
 
