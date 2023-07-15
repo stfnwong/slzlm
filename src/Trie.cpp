@@ -3,6 +3,8 @@
  * Trie Node
  */
 
+#include <pybind11/pybind11.h>
+
 #include "Trie.hpp"
 
 
@@ -78,3 +80,21 @@ bool TrieArray::search(const std::string_view word) const
 
 
 // TODO: for LZ I think I need a version that gives back the key
+
+
+
+
+
+// Python binding test
+namespace py = pybind11;
+
+PYBIND11_PLUGIN(trie_test) {
+    //py::module_::create_extension_module m("slz", "Trie");
+    py::module_ m("slz", "Trie");
+    py::class_ <Trie>(m, "Trie")
+        .def(py::init<>())
+        .def("insert", &Trie::insert)
+        .def("search", &Trie::search);
+
+    return m.ptr();
+}

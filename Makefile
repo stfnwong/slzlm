@@ -9,12 +9,19 @@ ASM_DIR=asm
 TEST_BIN_DIR=$(BIN_DIR)
 PROGRAM_DIR=programs
 
+# Pybind stuff
+PYTHON_VERSION=3.11
+PYTHON_DIR=/usr/include/python$(PYTHON_VERSION)/
+PYTHON_CFLAGS=$(shell python3-config --cflags)
+PYTHON_LDFLAGS=$(shell python3-config --ldflags)
+
 # Tool options
 CXX=g++
 OPT=-O0
-CXXFLAGS=-Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared
+#CXXFLAGS=-Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared $(PYTHON_CFLAGS)
+CXXFLAGS=$(PYTHON_CFLAGS) -Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared 
 TESTFLAGS=
-LDFLAGS=-pthread
+LDFLAGS=$(PYTHON_LDFLAGS)
 LIBS= 
 TEST_LIBS=
 
@@ -23,6 +30,7 @@ ASM_STYLE=intel
 
 # Object targets
 INCS=-I$(SRC_DIR)
+#INCS=-I$(SRC_DIR) -I$(PYTHON_DIR)
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 HEADERS = $(wildcard $(SRC_DIR)/*.hpp)
 # Unit tests 
@@ -34,11 +42,11 @@ PROGRAM_SOURCES = $(wildcard $(PROGRAM_DIR)/*.cpp)
 # Objects
 OBJECTS := $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 $(OBJECTS): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp  $(HEADERS)
-	$(CXX) $(CXXFLAGS) -c $< -o $@ 
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCS)
 
 # Objects, but output as assembly
 $(ASSEM_OBJECTS): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -S $< -o $(ASM_DIR)/$@.asm -masm=$(ASM_STYLE)
+	$(CC) $(CFLAGS) -S $< -o $(ASM_DIR)/$@.S -masm=$(ASM_STYLE)
 
 
 # Unit tests 
