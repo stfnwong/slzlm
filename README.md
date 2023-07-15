@@ -21,6 +21,16 @@ are in any way comprehensive.
 To make it easier to see how this works I decided I would try to write a `python` interface
 so that I can make notebooks. This is why there are `poetry` files in this project. 
 
+Poetry may be the least worst package manager out there but I stil hate it. To create the
+venv [install poetry](https://python-poetry.org/docs/) using that link or your package 
+manager and then do 
+
+`poetry install`
+
+Add `-vvv` to the end of the above command to also see a lot of text. The build doesn't
+work with poetry yet and perhaps never will, so don't do anything else.
+
+
 As of this writing, to get the python packages built do 
 
 `python setup.py build_ext -i`
