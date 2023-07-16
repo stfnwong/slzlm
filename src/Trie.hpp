@@ -12,6 +12,7 @@
 #include <memory>
 #include <string_view>
 
+static constexpr const uint32_t NULL_KEY_VAL = 0;
 
 
 // TODO: this can become private member of Trie
@@ -31,7 +32,11 @@ struct TrieNode
 class Trie
 {
     std::unique_ptr<TrieNode> root;
-    uint32_t cur_key;           // Note that key 0 is implicitly null key 
+    uint32_t cur_key;           // Note that key 0 is implicitly null key
+
+    // common search implementation
+    //std::unique_ptr<TrieNode> search_inner(const std::string_view word) const;
+    const TrieNode* search_inner(const std::string_view word) const;
 
     public:
         Trie() : root(std::make_unique<TrieNode>()), cur_key(1) {}
@@ -65,6 +70,8 @@ class TrieArray
     // need a global here to count the number of leaves
     std::unique_ptr<TrieArrayNode> root;
     uint32_t cur_key;
+
+    const TrieArrayNode* search_inner(const std::string_view word) const;
 
     public:
         TrieArray() : root(std::make_unique<TrieArrayNode>()), cur_key(1) {} 

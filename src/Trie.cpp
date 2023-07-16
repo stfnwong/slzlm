@@ -7,6 +7,26 @@
 
 #include "Trie.hpp"
 
+// Private inner implementation of search
+//std::unique_ptr<TrieNode> Trie::search_inner(const std::string_view word) const
+const TrieNode* Trie::search_inner(const std::string_view word) const
+{
+    const auto* node = this->root.get();
+    for(auto const c: word) 
+    {
+        auto& children = node->children;
+        auto it = children.find(c);
+        if(it == children.end())
+            return nullptr;
+            //return std::unique_ptr<TrieNode>(nullptr);            // we don't have it
+
+        node = it->second.get();
+    }
+
+    return node;
+}
+
+
 
 void Trie::insert(const std::string_view word)
 {
@@ -26,42 +46,44 @@ void Trie::insert(const std::string_view word)
     node->leaf = true;
 }
 
-
 bool Trie::search(const std::string_view word) const
 {
-    auto* node = this->root.get();
-    for(auto const c: word) 
-    {
-        auto& children = node->children;
-        auto it = children.find(c);
-        if(it == children.end())
-            return false;            // we don't have it
+    auto result = this->search_inner(word);
+    if(result != nullptr)
+        return result->leaf;
 
-        node = it->second.get();
-    }
-
-    return node->leaf;
+    return false;
 }
 
 
 uint32_t Trie::search_key(const std::string_view word) const
 {
-    // TODO: factor this out
-    auto* node = this->root.get();
-    for(auto const c: word) 
-    {
-        auto& children = node->children;
-        auto it = children.find(c);
-        if(it == children.end())
-            return 0;            // we don't have it
+    auto result = this->search_inner(word);
+    if(result != nullptr)
+        return result->value;
 
-        node = it->second.get();
-    }
-
-    return node->value;
+    return false;
 }
 
+
+
 // Version using arrays rather than maps
+
+
+const TrieArrayNode* TrieArray::search_inner(const std::string_view word) const
+{
+    auto* node = this->root.get();
+    for(auto const c: word)
+    {
+        int idx = int(c);
+        if(!node->children[idx].get())
+            return nullptr;
+
+        node = node->children[idx].get();
+    }
+
+    return node;
+}
 
 
 void TrieArray::insert(const std::string_view word)
@@ -83,33 +105,20 @@ void TrieArray::insert(const std::string_view word)
 
 bool TrieArray::search(const std::string_view word) const
 {
-    auto* node = this->root.get();
-    for(auto const c: word)
-    {
-        int idx = int(c);
-        if(!node->children[idx].get())
-            return false;
+    auto result = this->search_inner(word);
+    if(result != nullptr)
+        return result->leaf;
 
-        node = node->children[idx].get();
-    }
-
-    return node->leaf;
+    return false;
 }
 
 uint32_t TrieArray::search_key(const std::string_view word) const
 {
-    // TODO: factor this out
-    auto* node = this->root.get();
-    for(auto const c: word) 
-    {
-        int idx = int(c);
-        if(!node->children[idx].get())
-            return 0;
+    auto result = this->search_inner(word);
+    if(result != nullptr)
+        return result->value;
 
-        node = node->children[idx].get();
-    }
-
-    return node->value;
+    return NULL_KEY_VAL;
 }
 
 
