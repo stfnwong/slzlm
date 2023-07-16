@@ -12,7 +12,8 @@
 #include <memory>
 #include <string_view>
 
-static constexpr const uint32_t NULL_KEY_VAL = 0;
+
+static constexpr const uint32_t NULL_KEY_VALUE = 0;
 
 
 // TODO: this can become private member of Trie

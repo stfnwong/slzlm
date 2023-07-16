@@ -18,7 +18,6 @@ const TrieNode* Trie::search_inner(const std::string_view word) const
         auto it = children.find(c);
         if(it == children.end())
             return nullptr;
-            //return std::unique_ptr<TrieNode>(nullptr);            // we don't have it
 
         node = it->second.get();
     }
@@ -62,7 +61,7 @@ uint32_t Trie::search_key(const std::string_view word) const
     if(result != nullptr)
         return result->value;
 
-    return false;
+    return NULL_KEY_VALUE;
 }
 
 
@@ -118,7 +117,7 @@ uint32_t TrieArray::search_key(const std::string_view word) const
     if(result != nullptr)
         return result->value;
 
-    return NULL_KEY_VAL;
+    return NULL_KEY_VALUE;
 }
 
 

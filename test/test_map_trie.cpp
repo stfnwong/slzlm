@@ -52,4 +52,13 @@ TEST_CASE("test_search", "map_trie")
     for(unsigned i = 0; i < inputs.size(); ++i)
         //std::cout << "[" << inputs[i] << "]: " << t.search_key(inputs[i]) << std::endl;
         REQUIRE(t.search_key(inputs[i]) == i+1);
+
+    std::vector<uint32_t> exp_key_results = {1, 0, 0, 5, 0, 0};
+    std::vector<uint32_t> key_results;
+    for(const std::string& s : search_strings)
+        key_results.push_back(t.search_key(s));
+
+    REQUIRE(key_results.size() == exp_key_results.size());
+    for(unsigned i = 0; i < key_results.size(); ++i)
+        REQUIRE(exp_key_results[i] == key_results[i]);
 }
