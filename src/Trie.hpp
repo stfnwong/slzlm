@@ -22,21 +22,22 @@ struct TrieNode
     std::map<char, std::unique_ptr<TrieNode>> children;
 
     public:
-        TrieNode() : leaf(false), value(0), children() {}
+        TrieNode() : leaf(false), value(1), children() {}
+        TrieNode(uint32_t v) : leaf(false), value(v), children() {}
 };
-
-
 
 
 
 class Trie
 {
     std::unique_ptr<TrieNode> root;
+    uint32_t cur_key;           // Note that key 0 is implicitly null key 
 
     public:
-        Trie() : root(std::make_unique<TrieNode>()) {}
+        Trie() : root(std::make_unique<TrieNode>()), cur_key(1) {}
         void insert(const std::string_view word);
         bool search(const std::string_view word) const;
+        uint32_t search_key(const std::string_view word) const;
 };
 
 
@@ -53,7 +54,8 @@ struct TrieArrayNode
     //std::array<TrieNode*, N> children;
 
     public:
-        TrieArrayNode() : leaf(false), value(0), children() {}
+        TrieArrayNode() : leaf(false), value(1), children() {}
+        TrieArrayNode(uint32_t v) : leaf(false), value(v), children() {}
 };
 
 
@@ -62,11 +64,13 @@ class TrieArray
 {
     // need a global here to count the number of leaves
     std::unique_ptr<TrieArrayNode> root;
+    uint32_t cur_key;
 
     public:
-        TrieArray() : root(std::make_unique<TrieArrayNode>()) {} 
+        TrieArray() : root(std::make_unique<TrieArrayNode>()), cur_key(1) {} 
         void insert(const std::string_view word);
         bool search(const std::string_view word) const;
+        uint32_t search_key(const std::string_view word) const;
 };
 
 

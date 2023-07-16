@@ -46,5 +46,8 @@ TEST_CASE("test_search", "array_trie")
     for(unsigned i = 0; i < results.size(); ++i)
         REQUIRE(results[i] == exp_results[i]);
 
+    // Check that we get the expected keys
+    for(unsigned i = 0; i < inputs.size(); ++i)
+        REQUIRE(t.search_key(inputs[i]) == i+1);
 }
 

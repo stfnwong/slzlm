@@ -3,13 +3,14 @@
 from slz import Trie
 
 def test_trie():
-
-    inputs = ["fuck", "your", "couch", "conch", "counter", "country", "cause", "company", "charlie", "murphy"]
+    inputs = [
+        "fuck", "your", "couch", "conch", "counter",
+        "country", "cause", "company", "charlie", "murphy"
+    ]
 
     trie = Trie()
     for s in inputs:
         trie.insert(s)
-
 
     search_terms = ["couch", "charlie", "charles", "charlton", "chad", "chud"]
     exp_results = [True, True, False, False, False, False]
