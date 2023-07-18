@@ -7,10 +7,7 @@
 #include <stack>
 #include <utility>
 
-// TODO: debug only
-#include <iostream>
-
-#include "comp.hpp"
+#include "LZW.hpp"
 
 
 LZWDict::LZWDict() : cur_key(0), root(std::make_unique<LZWNode>())

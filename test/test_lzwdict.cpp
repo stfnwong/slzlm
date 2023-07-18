@@ -7,7 +7,7 @@
 #include <iostream>
 
 // TODO: change this name
-#include "comp.hpp"
+#include "LZW.hpp"
 
 
 TEST_CASE("test_encode_string_1", "lzw")

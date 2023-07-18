@@ -4,8 +4,8 @@
  *
  */
 
-#ifndef __COMP_HPP
-#define __COMP_HPP
+#ifndef __LZW_HPP
+#define __LZW_HPP
 
 #include <map>
 #include <memory>
@@ -59,4 +59,4 @@ struct LZWDict
 
 
 
-#endif /*__COMP_HPP*/
+#endif /*__LZW_HPP*/
