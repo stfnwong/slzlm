@@ -82,7 +82,7 @@ TEST_CASE("test_reverse_char", "lzw")
 {
     LZWDict lzw;
 
-    std::string test_input = "babaabaaa"; // exp sequence: 98, 907, 256, 257, 97, 260
+    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
     auto enc = lzw.encode(test_input);
 
     std::cout << "Encoded to: ";
@@ -94,11 +94,12 @@ TEST_CASE("test_reverse_char", "lzw")
         "a",    // 97
         "b",    // 98
         "ba",   // 256
-        "ab",   // 97, 98 (doesn't compress? should be 257)
-        "baa",  // 256, 97
-        "aba",
-        "aa",
-        "bb"
+        "ab",   // 257
+        "baa",  // 258
+        "aba",  // 259
+        "aa",   // 260
+        "bb",   // 98, 98
+        "babaa", // 256, 258
     };
 
     for(auto const& s: words)

@@ -98,7 +98,8 @@ std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
         {
             std::cout << " no child with symbol [" << c << "]";
             out.push_back(node->value);
-            node = this->root.get();
+            node = this->root->children.find(c)->second.get();
+            //node = this->root.get();
         }
         else
         {
@@ -106,6 +107,8 @@ std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
             node = it->second.get();
         }
         std::cout << std::endl;
+        std::cout << "end of loop for [" << c << "], node is [" << node->value << "] "
+            << (node->leaf ? "leaf" : "non-leaf") << std::endl;
 
     }
     //out.push_back(node->value);
@@ -131,8 +134,9 @@ std::vector<uint32_t> LZWDict::encode(const std::string_view data)
         if(result_node == nullptr)
         {
             out.push_back(node->value);
-            node = this->insert(lzw_symbol_t(c), node);
-            // if this node == nullptr then we fucked up
+            this->insert(lzw_symbol_t(c), node);
+            node = this->root->children.find(c)->second.get();  // p = c
+            //node = this->insert(lzw_symbol_t(c), node);  // this line makes a very deep tree
         }
         else
             node = result_node;    // (p = p + c) node  
