@@ -62,3 +62,15 @@ TEST_CASE("test_search", "map_trie")
     for(unsigned i = 0; i < key_results.size(); ++i)
         REQUIRE(exp_key_results[i] == key_results[i]);
 }
+
+
+TEST_CASE("test_trie_encoding", "map_trie")
+{
+    Trie trie;
+    
+    const std::string test_data = "babaabaaa";
+    trie.insert(test_data);
+
+    bool res = trie.search(test_data);
+    REQUIRE(res == true);
+}

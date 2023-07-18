@@ -29,7 +29,7 @@ TEST_LIBS=
 ASM_STYLE=intel
 
 # Object targets
-INCS=-I$(SRC_DIR) $(shell python$PYTHON_VERSION-config --includes)
+INCS=-I$(SRC_DIR) $(shell python$$PYTHON_VERSION-config --includes)
 #INCS=-I$(SRC_DIR) -I$(PYTHON_DIR)
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 HEADERS = $(wildcard $(SRC_DIR)/*.hpp)
