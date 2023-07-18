@@ -1,6 +1,7 @@
 // Can I put the python module in a new file?
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "Trie.hpp"
 #include "LZW.hpp"

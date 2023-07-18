@@ -1,7 +1,17 @@
-# LZ
+# Shit LZ-based Langauge Models
 
 
 So this [gzip thing](https://aclanthology.org/2023.findings-acl.426/) got in the news lately and I thought it would be interesting to write an LZ compressor and decompressor.
+
+I gave this a title with the word _Language Model_ but its not really a language model.
+Some people don't even think its that, see [here](https://kenschutte.com/gzip-knn-paper/).
+
+## Quickstart 
+The minimum required to start is 
+
+- Clone this repo and move into the directory
+- Type `make all`
+- To check that it worked do `./tests/run_tests.sh` to make sure the `C++` stuff works, and `pytest` to make sure the `python` stuff works.
 
 
 ## C++ Requirements 
