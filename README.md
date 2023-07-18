@@ -14,6 +14,18 @@ The minimum required to start is
 - To check that it worked do `./tests/run_tests.sh` to make sure the `C++` stuff works, and `pytest` to make sure the `python` stuff works.
 
 
+# Header formats
+This is a description of the header formats used by the various compressors. 
+
+### LZW
+
+| Offset | Length | Meaning |
+| ------ | ------ | ------- |
+| 0      | 4      | Offset to 24-bit symbol table |
+| 4      | 4      | Offset to 32-bit symbol table | 
+| 8      | 4      | Total number of codes | 
+
+
 ## C++ Requirements 
 - C++17
 - GNU Make

@@ -85,38 +85,22 @@ TEST_CASE("test_encode_string_2", "lzw")
     for(unsigned w = 0; w < words.size(); ++w)
     {
         auto codes = lzw.get_code(words[w]);
-        //std::cout << "Codes [" << s << "]: ";
         REQUIRE(codes.size() == exp_codes[w].size());
         for(unsigned i = 0; i < codes.size(); ++i)
             REQUIRE(codes[i] == exp_codes[w][i]);
-            //std::cout << codes[i] << " ";
-        //std::cout << std::endl;
     }
-
 }
 
 
 
-// Mainly for debugging
-//TEST_CASE("test_encode_method", "lzw")
-//{
-//    LZWDict lzw;
-//
-//    std::string test_input = "babaabaaa";
-//    lzw.encode(test_input);
-//
-//    auto traversals = lzw.find_all();
-//    std::cout << "Found " << traversals.size() << " traversals" 
-//        << " for input [" << test_input << "]" << std::endl;
-//
-//    for(unsigned t = 0; t < traversals.size(); ++t)
-//    {
-//        if(traversals[t].size() == 1)
-//            continue;
-//
-//        std::cout << "Traversal " << t << ": [" ;
-//        for(unsigned n = 0; n < traversals[t].size(); ++n)
-//            std::cout << traversals[t][n] << " ";
-//        std::cout << "]" << std::endl;
-//    }
-//}
+TEST_CASE("test_encode_to_file", "lzw")
+{
+    LZWDict lzw;
+
+    const std::string input = "babaabaaa";
+    const std::string test_filename = "ba.lzw";
+
+    std::cout << "Encoding to file [" << test_filename << "]" << std::endl;
+
+    lzw.encode_to_file(test_filename, input);
+}

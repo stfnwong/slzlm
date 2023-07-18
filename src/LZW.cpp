@@ -6,6 +6,11 @@
 
 #include <stack>
 #include <utility>
+#include <fstream>
+
+// TODO: debug only, remove these
+#include <iostream>
+#include <iomanip>
 
 
 #include "LZW.hpp"
@@ -106,7 +111,7 @@ std::vector<uint32_t> LZWDict::encode(const std::string_view data)
             out.push_back(node->value);
             this->insert(lzw_symbol_t(c), node);
             node = this->root->children.find(c)->second.get();  // p = c node
-            //node = this->insert(lzw_symbol_t(c), node);  // this line makes a very deep tree
+            //node = this->insert(lzw_symbol_t(c), node);  // this implementation is incorrect - makes very deep tree
         }
         else
             node = result_node;    // (p = p + c) node  
@@ -116,9 +121,67 @@ std::vector<uint32_t> LZWDict::encode(const std::string_view data)
 }
 
 
-std::vector<uint8_t> LZWDict::decode(const std::vector<uint16_t>& data) const
+void LZWDict::encode_to_file(const std::string& filename, const std::string_view data)
 {
-    std::vector<uint8_t> out;
+    std::ofstream file(filename, std::ios::binary);
+
+    // Write empty space for header
+    file.seekp(1 * sizeof(uint32_t), file.beg);         // number of 24-bit codes 
+    file.seekp(2 * sizeof(uint32_t), file.beg);         // number of 32-bit codes
+    file.seekp(3 * sizeof(uint32_t), file.beg);         // total number of codes
+
+    int bytes_per_code = 2;
+    auto* node = this->root.get();
+
+    // record offset for 24 and 32 bit codes here 
+    int offset_24bit_codes = 0;
+    int offset_32bit_codes = 0;
+
+    for(auto const c: data)
+    {
+        auto* result_node = this->search_node(lzw_symbol_t(c), node);
+        if(!result_node)
+        {
+            std::cout << "[" << __func__ << "] writing [" << std::dec << node->value << "] (0x"
+                << std::hex << node->value << ")" << std::endl;
+            file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+            this->insert(lzw_symbol_t(c), node);
+            node = this->root->children.find(c)->second.get();
+
+            if(this->cur_key == 0xFFFF)
+            {
+                bytes_per_code = 3;         // 2^16 - 1
+                offset_24bit_codes = int(file.tellp());
+            }
+            else if(this->cur_key == 0xFFFFFF)
+            {
+                bytes_per_code = 4;         // 2^24 - 1
+                offset_32bit_codes = int(file.tellp());
+            }
+        }
+        else
+            node = result_node;
+    }
+    file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+
+    std::cout << "[" << __func__ << "] 24 bit codes offset  : " << std::dec << offset_24bit_codes << std::endl;
+    std::cout << "[" << __func__ << "] 32 bit codes offset  : " << std::dec << offset_32bit_codes << std::endl;
+    std::cout << "[" << __func__ << "] total number of codes: " << std::dec << this->cur_key << std::endl;
+
+    // Write header information
+    file.seekp(0, file.beg);
+    file.write(reinterpret_cast<const char*>(&offset_24bit_codes), sizeof(uint32_t));
+    file.write(reinterpret_cast<const char*>(&offset_32bit_codes), sizeof(uint32_t));
+    file.write(reinterpret_cast<const char*>(&this->cur_key), sizeof(uint32_t));
+
+    file.close();
+}
+
+
+
+std::vector<uint16_t> LZWDict::decode(const std::vector<uint16_t>& data) const
+{
+    std::vector<uint16_t> out;
 
     return out;         // shut linter up
 }
