@@ -7,6 +7,7 @@
 #include <stack>
 #include <utility>
 
+
 #include "LZW.hpp"
 
 
@@ -16,8 +17,6 @@ LZWDict::LZWDict() : cur_key(0), root(std::make_unique<LZWNode>())
         this->insert(lzw_symbol_t(code), this->root.get());
 }
 
-
-//LZWNode* LZWDict::insert(const std::string_view data, LZWNode* node)
 
 LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
 {
@@ -165,3 +164,5 @@ std::vector<std::vector<uint32_t>> LZWDict::find_all(void) const
 
     return out;
 }
+
+

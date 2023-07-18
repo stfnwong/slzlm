@@ -128,18 +128,12 @@ uint32_t TrieArray::search_key(const std::string_view word) const
 
 
 // Python binding test
-namespace py = pybind11;
-
-
-PYBIND11_MODULE(slz, m)
-{
-    //py::module_::create_extension_module m("slz", "Trie");
-    //py::module_ m("slz", "Trie");
-    py::class_ <Trie>(m, "Trie")
-        .def(py::init<>())
-        .def("insert", &Trie::insert)
-        .def("search", &Trie::search);
-
-    
-    //return m.ptr();
-}
+//namespace py = pybind11;
+//
+//PYBIND11_MODULE(slz, m)
+//{
+//    py::class_ <Trie>(m, "Trie")
+//        .def(py::init<>())
+//        .def("insert", &Trie::insert)
+//        .def("search", &Trie::search);
+//}

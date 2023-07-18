@@ -6,7 +6,6 @@
 
 #include <iostream>
 
-// TODO: change this name
 #include "LZW.hpp"
 
 

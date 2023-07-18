@@ -32,7 +32,7 @@ struct LZWNode
 
 
 
-struct LZWDict
+class LZWDict
 {
     uint32_t cur_key;
     std::unique_ptr<LZWNode> root;
