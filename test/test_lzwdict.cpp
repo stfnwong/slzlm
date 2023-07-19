@@ -104,3 +104,49 @@ TEST_CASE("test_encode_to_file", "lzw")
 
     lzw.encode_to_file(test_filename, input);
 }
+
+
+TEST_CASE("test_clear_dict", "lzw")
+{
+    LZWDict lzw;
+
+    //std::vector<std::string> test = {"a", "b", "c", "d"};
+    //for(unsigned i = 0; i < test.size(); ++i)
+    //{
+    //    std::cout << "Checking [" << std::string(i) << "]" << std::endl;
+    //    REQUIRE(lzw.contains(std::string(i)) == true);
+    //}
+    
+
+
+
+    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
+    for(unsigned i = LZW_ALPHA_SIZE; i < 2 * LZW_ALPHA_SIZE; ++i)
+        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
+
+    //const std::string input = "babaabaaa";
+    //auto codes = lzw.encode(input);   // should be 260 symbols now 
+
+    //for(unsigned i = 0; i < 1 * LZW_ALPHA_SIZE; ++i)
+    //{
+    //    if(i < 260)
+    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
+    //    else
+    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
+    //}
+    //
+    //// if we clear the dict now there should be zero entries 
+    //lzw.clear_dict();
+    //for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+    //    REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
+
+    //lzw.init();
+    //for(unsigned i = 0; i < 1 * LZW_ALPHA_SIZE; ++i)
+    //{
+    //    if(i < LZW_ALPHA_SIZE)
+    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
+    //    else
+    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
+    //}
+}

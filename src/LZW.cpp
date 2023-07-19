@@ -16,24 +16,16 @@
 #include "LZW.hpp"
 
 
-LZWDict::LZWDict() : cur_key(0), root(std::make_unique<LZWNode>())
-{
-    for(uint32_t code = 0; code < ALPHA_SIZE; ++code)
-        this->insert(lzw_symbol_t(code), this->root.get());
-}
-
-
+// LZWDict private methods
 LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
 {
     auto& children = node->children;
     auto it = children.find(c);
     
     if(it == children.end())
-        it = children.emplace(c, std::make_unique<LZWNode>()).first;
+        it = children.emplace(c, std::make_unique<LZWNode>(this->cur_key, true)).first;
 
     node = it->second.get();
-    node->value = this->cur_key;
-    node->leaf = true;
     this->cur_key++;
 
     return node;
@@ -51,6 +43,48 @@ LZWNode* LZWDict::search_node(const lzw_symbol_t c, LZWNode* node) const
 
     return node;
 }
+
+
+// Ctor
+LZWDict::LZWDict() : cur_key(0), root(std::make_unique<LZWNode>())
+{
+    this->init();
+}
+
+void LZWDict::init(void)
+{
+    for(uint32_t code = 0; code < LZW_ALPHA_SIZE; ++code)
+        this->insert(lzw_symbol_t(code), this->root.get());
+}
+
+void LZWDict::clear_dict(void)
+{
+    // Dfs through tree and clear from leaf to root;
+    std::stack<LZWNode*> s;
+
+    LZWNode* node = this->root.get();
+    s.push(node);
+
+    while(!s.empty())
+    {
+        LZWNode* cur_node = s.top();
+        s.pop();
+
+        auto& children = cur_node->children;
+        if(children.size() > 0)
+        {
+            for(auto it = children.begin(); it != children.end(); ++it)
+            {
+                if(it->second->children.size() > 0)
+                    s.push(it->second.get());
+                else
+                    it->second->children.clear();
+            }
+        }
+    }
+}
+    
+
 
 
 bool LZWDict::contains(const std::string_view data) const
@@ -121,6 +155,7 @@ std::vector<uint32_t> LZWDict::encode(const std::string_view data)
 }
 
 
+// TODO: replace fstream with ostream?
 void LZWDict::encode_to_file(const std::string& filename, const std::string_view data)
 {
     std::ofstream file(filename, std::ios::binary);
@@ -142,8 +177,6 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
         auto* result_node = this->search_node(lzw_symbol_t(c), node);
         if(!result_node)
         {
-            std::cout << "[" << __func__ << "] writing [" << std::dec << node->value << "] (0x"
-                << std::hex << node->value << ")" << std::endl;
             file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             this->insert(lzw_symbol_t(c), node);
             node = this->root->children.find(c)->second.get();
@@ -162,11 +195,8 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
         else
             node = result_node;
     }
-    file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
 
-    std::cout << "[" << __func__ << "] 24 bit codes offset  : " << std::dec << offset_24bit_codes << std::endl;
-    std::cout << "[" << __func__ << "] 32 bit codes offset  : " << std::dec << offset_32bit_codes << std::endl;
-    std::cout << "[" << __func__ << "] total number of codes: " << std::dec << this->cur_key << std::endl;
+    file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
 
     // Write header information
     file.seekp(0, file.beg);
@@ -179,9 +209,12 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
 
 
 
-std::vector<uint16_t> LZWDict::decode(const std::vector<uint16_t>& data) const
+// TODO: don't use this - its just for testing the algorithm
+std::vector<uint16_t> LZWDict::decode(const std::vector<uint32_t>& data) const
 {
     std::vector<uint16_t> out;
+
+
 
     return out;         // shut linter up
 }
