@@ -218,6 +218,7 @@ std::stringstream LZWDict::encode2(std::stringstream& input)
     //std::stringstream out(std::stringstream::binary);
     std::stringstream out;
 
+    size_t size;        // output length in bytes
     int bytes_per_code = 2;
     auto* node = this->root.get();
 
@@ -234,6 +235,8 @@ std::stringstream LZWDict::encode2(std::stringstream& input)
             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             this->insert(lzw_symbol_t(c), node);
             node = this->root->children.find(c)->second.get();  // previous character node
+
+            size += bytes_per_code;
             
             // if we have encoded a large value adjust the size of the output code 
             if(this->cur_key == 0xFFFF)

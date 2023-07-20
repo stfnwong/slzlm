@@ -181,60 +181,55 @@ TEST_CASE("test_deez_nuts", "lzw")
     auto enc = lzw.encode2(ss);
 
 
-    //enc.seekg(0, std::ios::beg);
-    //auto start = enc.tellg();
-    //enc.seekg(0, std::ios::end);
-    //auto enc_size = std::size_t(ss.tellg() - start);
-    //std::cout << "enc_size : " << enc_size << std::endl;
-    //enc.seekg(0, std::ios::beg);
-
-    std::vector<uint16_t> out_data;
-
-    char word_buf[2];
+    // can't seek in stringstream?
+    enc.seekg(0, std::ios::end);
+    size_t enc_size = enc.tellp();
     enc.seekg(0, std::ios::beg);
-    while(!enc.eof())
+    std::cout << "[" << __func__ << "] enc_size:" << enc_size << std::endl;
+
+
+
+    std::vector<unsigned char> out_data(enc_size);
+    enc.read((char*) out_data.data(), std::streamsize(out_data.size()));
+
+    uint8_t buf[2];
+    for(unsigned i = 0; i < out_data.size(); ++i)
     {
-        if(enc.fail())
-            break;
-
-        enc.read(word_buf, 2);
-        uint16_t word = word_buf[1] << 8 | word_buf[0];
-        out_data.push_back(word);
+        buf[i % 2] = out_data[i];
+        if(i % 2 == 1)
+            std::cout << (buf[1] << 8 | buf[0]) << std::endl;
     }
-
-
 
 
     //enc.read(reinterpret_cast<const char*>(out_data.data()), std::streamsize(out_data.size()));
 
+    //std::ofstream file("fuck_your_couch_charlie.murphy", std::ios::binary);
 
-
-
+    //char buf;
     //while(!enc.eof())
     //{
-    //    char buf[2];
-    //    enc.read(&buf, sizeof(uint16_t));
-    //    out_data.push_back(buf);
-    //}
-    //enc.seekp(0, std::ios::beg);
-
-    //do
-    //{
-    //    for(uint16_t number; enc >> number;)
-    //        out_data.push_back(number);
     //    if(enc.fail())
     //        break;
-    //} while(!enc.eof());
 
-    //const std::string enc_str = enc.rdbuf()->str();
-    //std::cout << "enc.rdbuf()->str() : " << enc_str << std::endl;
-    //std::ofstream file("encbuf.dat", std::ios::binary);
-    //file << enc_str;
+    //    enc.read(&buf, 1);
+    //    file.write(reinterpret_cast<const char*>(&buf), sizeof(const char));
+    //}
+
     //file.close();
 
-    //std::vector<uint16_t> out_data;
-    //const std::string& enc_str = enc.str();
-    //out_data.insert(out_data.end(), enc_str.begin(), enc_str.end());
+
+    //char word_buf[2];
+    //enc.seekg(0, std::ios::beg);
+    //while(!enc.eof())
+    //{
+    //    if(enc.fail())
+    //        break;
+
+    //    enc.read(word_buf, 2);
+    //    uint16_t word = word_buf[1] << 8 | word_buf[0];
+    //    out_data.push_back(word);
+    //}
+
 
     std::cout << "Deez nuts (length " << out_data.size() << ") encoded to: ";
     for(unsigned i = 0; i < out_data.size(); ++i)
