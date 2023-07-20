@@ -17,7 +17,7 @@
 
 
 // LZWDict private methods
-LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
+LZWDict::LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
 {
     auto& children = node->children;
     auto it = children.find(c);
@@ -32,7 +32,7 @@ LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
 }
 
 
-LZWNode* LZWDict::search_node(const lzw_symbol_t c, LZWNode* node) const
+LZWDict::LZWNode* LZWDict::search_node(const lzw_symbol_t c, LZWNode* node) const
 {
     auto& children = node->children;
     auto it = children.find(c);
@@ -207,6 +207,11 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
     file.close();
 }
 
+
+
+void LZWDict::encode2(const std::string& filename)
+{
+}
 
 
 // TODO: don't use this - its just for testing the algorithm

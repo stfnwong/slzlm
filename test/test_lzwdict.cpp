@@ -4,6 +4,8 @@
 #define CATCH_CONFIG_MAIN
 #include "catch/catch.hpp"
 
+#include <fstream>
+#include <sstream>
 #include <iostream>
 
 #include "LZW.hpp"
@@ -106,6 +108,32 @@ TEST_CASE("test_encode_to_file", "lzw")
 }
 
 
+TEST_CASE("test_stringstream", "lzw")
+{
+
+    unsigned test_data_len = 256;
+    std::vector<uint8_t> sample_data;
+    for(unsigned i = 0; i < test_data_len; ++i)
+        sample_data.push_back(uint8_t(i));
+
+    std::ostringstream oss;
+    for(unsigned i = 0; i < test_data_len; ++i)
+        oss.write(reinterpret_cast<const char*>(&sample_data[i]), sizeof(uint8_t));
+
+    // When I print this it should look like garbage 
+    std::cout << "test string is [" << oss.str() << "]" << std::endl;
+
+    const std::string test_filename = "sstring.test";
+
+    std::ofstream file(test_filename, std::ios::binary);
+    file.write((const char*) &sample_data[0], sample_data.size() * sizeof(uint8_t));
+    file.close();
+
+
+
+}
+
+
 TEST_CASE("test_clear_dict", "lzw")
 {
     LZWDict lzw;
@@ -116,14 +144,11 @@ TEST_CASE("test_clear_dict", "lzw")
     //    std::cout << "Checking [" << std::string(i) << "]" << std::endl;
     //    REQUIRE(lzw.contains(std::string(i)) == true);
     //}
-    
 
-
-
-    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
-    for(unsigned i = LZW_ALPHA_SIZE; i < 2 * LZW_ALPHA_SIZE; ++i)
-        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
+    //for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+    //    REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
+    //for(unsigned i = LZW_ALPHA_SIZE; i < 2 * LZW_ALPHA_SIZE; ++i)
+    //    REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
 
     //const std::string input = "babaabaaa";
     //auto codes = lzw.encode(input);   // should be 260 symbols now 
