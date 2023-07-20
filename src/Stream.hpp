@@ -23,6 +23,7 @@ struct LZStream
 
     public:
         void to_file(const std::string& filename);
+        void write(uint32_t value, unsigned code_size);
 };
 
 

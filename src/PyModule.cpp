@@ -11,13 +11,31 @@
 #include "LZW.hpp"
 
 
-// Test how to pass bytes
-struct BytesModule
-{
-};
-
-
 namespace py = pybind11;
+
+
+//std::string bytes_test(std::stringstream& input)
+py::bytes bytes_test(const py::bytes& input)            // std::string works the same way in interpreter
+{
+    std::ostringstream out;
+
+    //char c;
+    //while(input)
+    //{
+    //    if(!input.get(c))
+    //        break;
+    //    if(input.eof() || input.fail())
+    //        break;
+    //    out.write(reinterpret_cast<const char*>(&c), sizeof(const char));
+    //}
+
+    for(const auto c : input)
+        out.write(reinterpret_cast<const char*>(&c), sizeof(const char));
+
+    return py::bytes(out.str());
+}
+
+
 
 
 PYBIND11_MODULE(slz, m)
@@ -32,6 +50,8 @@ PYBIND11_MODULE(slz, m)
         .def(py::init<>())
         .def("insert", &Trie::insert)
         .def("search", &Trie::search);
+
+    m.def("bytes_test", &bytes_test);
 
     m.def("return_bytes",
             []() {

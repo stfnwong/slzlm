@@ -20,3 +20,12 @@ void LZStream::to_file(const std::string& filename)
 
     //file.write(reinterpret_cast<const char*>(&
 }
+
+
+/*
+ * Write a single value into the stream
+ */
+void LZStream::write(uint32_t value, unsigned code_size)
+{
+    this->data.write(reinterpret_cast<const char*>(&value), code_size);
+}

@@ -215,7 +215,6 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
 std::stringstream LZWDict::encode2(std::stringstream& input)
 {
     // We can't set up header here so skip
-    //std::stringstream out(std::stringstream::binary);
     std::stringstream out;
 
     size_t size = 0;        // output length in bytes
@@ -230,16 +229,11 @@ std::stringstream LZWDict::encode2(std::stringstream& input)
         if(input.eof() || input.fail())
             break;
 
-        //input.read((char*)&c, sizeof(uint8_t));
-        //std::cout << "[" << __func__ << "] current output: [" << out.rdbuf() << "]" << std::endl;
-        std::cout << "[" << __func__ << "] read (" << c << ") from input" << std::endl;
-
         auto result_node = this->search_node(lzw_symbol_t(c), node);
 
         if(!result_node)
         {
             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-            std::cout << "write [" << node->value << "] to stream" << std::endl;
             this->insert(lzw_symbol_t(c), node);
             node = this->root->children.find(c)->second.get();  // previous character node
 
@@ -252,17 +246,10 @@ std::stringstream LZWDict::encode2(std::stringstream& input)
                 bytes_per_code = 4;
         }
         else
-        {
-            std::cout << "[" << c << "] is a child of node [" << node->value << "]"
-                << " at [" << result_node->value << "]" << std::endl;
             node = result_node;    // input concat node
-        }
     }
     out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
     size += bytes_per_code;
-    std::cout << "[" << __func__ << "] wrote final value [" << node->value << "] to stream" << std::endl;
-
-    std::cout << "[" << __func__ << "] wrote " << size << " bytes to stream" << std::endl;
 
     return out;
 }
