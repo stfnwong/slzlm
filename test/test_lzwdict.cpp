@@ -11,6 +11,89 @@
 #include "LZW.hpp"
 
 
+TEST_CASE("test_encode2_to_stream", "lzw")
+{
+    LZWDict lzw;
+
+    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
+    std::stringstream ss;
+    ss << test_input;
+    auto enc = lzw.encode2(ss);
+
+    std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
+    std::vector<uint16_t> out_data;
+
+    unsigned bytes_read = 0;
+    while(enc)
+    {
+        if(enc.eof() || enc.fail())
+            break;
+
+        char word_buf[2];
+        char buf;
+        enc.read(&buf, sizeof(uint8_t));
+        word_buf[bytes_read % 2] = buf;
+        
+        if(bytes_read % 2)
+            out_data.push_back((word_buf[1] << 8 | word_buf[0]));
+        bytes_read++;
+    }
+
+    std::cout << "encode2() output data: [";
+    for(const auto& elem: out_data)
+        std::cout << elem << " ";
+    std::cout << "]" << std::endl;
+    
+    REQUIRE(out_data.size() == exp_data.size());
+    for(unsigned i = 0; i < out_data.size(); ++i)
+        REQUIRE(out_data[i] == exp_data[i]);
+
+}
+
+TEST_CASE("test_encode2_to_file", "lzw")
+{
+    LZWDict lzw;
+
+    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
+    std::stringstream ss;
+    ss << test_input;
+    auto enc = lzw.encode2(ss);
+
+    const std::string test_filename = "encode2_disk.test";
+
+    std::ofstream file(test_filename, std::ios::binary);
+
+    std::vector<uint16_t> out_data;
+    char word_buf[2];
+
+    char buf;
+    unsigned read_count = 0;
+    while(!enc.eof())
+    {
+        if(enc.fail())
+            break;
+
+        enc.read(&buf, 1);
+        file.write(reinterpret_cast<const char*>(&buf), sizeof(const char));
+        read_count++;
+
+        word_buf[read_count % 2] = buf;
+        if(read_count % 2)
+            out_data.push_back(word_buf[1] << 8 | word_buf[0]);
+    }
+
+    file.close();
+
+
+    // read the file off disk and check?
+
+
+}
+
+
+
+
+
 TEST_CASE("test_encode_string_1", "lzw")
 {
     LZWDict lzw;
@@ -108,34 +191,6 @@ TEST_CASE("test_encode_to_file", "lzw")
 }
 
 
-TEST_CASE("test_stringstream", "lzw")
-{
-
-    unsigned test_data_len = 256;
-    std::vector<uint8_t> sample_data;
-    for(unsigned i = 0; i < test_data_len; ++i)
-        sample_data.push_back(uint8_t(i));
-
-    std::ostringstream oss;
-    for(unsigned i = 0; i < test_data_len; ++i)
-        oss.write(reinterpret_cast<const char*>(&sample_data[i]), sizeof(uint8_t));
-
-    // When I print this it should look like garbage 
-    std::cout << "test string is [" << oss.str() << "]" << std::endl;
-
-    const std::string test_filename = "sstring.test";
-
-    std::ofstream file(test_filename, std::ios::binary);
-    //file.write((const char*) oss.rdbuf(), oss.tellp() * sizeof(const char));
-    //file.write((const char*) &sample_data[0], sample_data.size() * sizeof(uint8_t));
-    file << oss.str();
-    file.close();
-
-
-
-}
-
-
 TEST_CASE("test_encode2", "lzw")
 {
     unsigned test_data_size = 256;
@@ -155,9 +210,6 @@ TEST_CASE("test_encode2", "lzw")
 
     enc_out.seekp(0, std::ios::beg);
     
-    std::cout << "enc_out:" << enc_out.str() << std::endl;
-    std::cout << "rdbuf:" << enc_out.rdbuf() << std::endl;
-
     //enc_out.seekp(0, std::ios::end);
     //size_t buf_size = enc_out.tellp();
     //enc_out.seekp(0, std::ios::beg);
@@ -171,97 +223,6 @@ TEST_CASE("test_encode2", "lzw")
 
 
 
-TEST_CASE("test_deez_nuts", "lzw")
-{
-    LZWDict lzw;
-
-    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
-    std::stringstream ss;
-    ss << test_input;
-    auto enc = lzw.encode2(ss);
-
-
-    // can't seek in stringstream?
-    enc.seekg(0, std::ios::end);
-    size_t enc_size = enc.tellp();
-    enc.seekg(0, std::ios::beg);
-    std::cout << "[" << __func__ << "] enc_size:" << enc_size << std::endl;
-
-
-
-    std::vector<unsigned char> out_data(enc_size);
-    enc.read((char*) out_data.data(), std::streamsize(out_data.size()));
-
-    uint8_t buf[2];
-    for(unsigned i = 0; i < out_data.size(); ++i)
-    {
-        buf[i % 2] = out_data[i];
-        if(i % 2 == 1)
-            std::cout << (buf[1] << 8 | buf[0]) << std::endl;
-    }
-
-
-    //enc.read(reinterpret_cast<const char*>(out_data.data()), std::streamsize(out_data.size()));
-
-    //std::ofstream file("fuck_your_couch_charlie.murphy", std::ios::binary);
-
-    //char buf;
-    //while(!enc.eof())
-    //{
-    //    if(enc.fail())
-    //        break;
-
-    //    enc.read(&buf, 1);
-    //    file.write(reinterpret_cast<const char*>(&buf), sizeof(const char));
-    //}
-
-    //file.close();
-
-
-    //char word_buf[2];
-    //enc.seekg(0, std::ios::beg);
-    //while(!enc.eof())
-    //{
-    //    if(enc.fail())
-    //        break;
-
-    //    enc.read(word_buf, 2);
-    //    uint16_t word = word_buf[1] << 8 | word_buf[0];
-    //    out_data.push_back(word);
-    //}
-
-
-    std::cout << "Deez nuts (length " << out_data.size() << ") encoded to: ";
-    for(unsigned i = 0; i < out_data.size(); ++i)
-        std::cout << out_data[i] << " ";
-    std::cout << std::endl;
-
-    std::vector<std::string> words = {
-        "a",    // 97
-        "b",    // 98
-        "ba",   // 256
-        "ab",   // 257
-        "baa",  // 258
-        "aba",  // 259
-        "aa",   // 260
-        "bb",   // 98, 98
-        "babaa", // 256, 258
-    };
-
-    std::vector<std::vector<lzw_symbol_t>> exp_codes = {
-        {97},       // a
-        {98},       // b
-        {256},      // ba 
-        {257},      // ab
-        {258},      // baa
-        {259},      // aba
-        {260},      // aa
-        {98, 98},   // bb
-        {256, 258}, // babaa
-    };
-
-    REQUIRE(words.size() == exp_codes.size());
-}
 
 
 TEST_CASE("test_clear_dict", "lzw")
