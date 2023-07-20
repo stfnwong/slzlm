@@ -208,9 +208,44 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
 }
 
 
+// TODO: maybe definition goes in some other file 
+//std::string LZWDict::py_encode(const std::string_view data
 
-void LZWDict::encode2(const std::string& filename)
+
+std::stringstream LZWDict::encode2(std::stringstream& input)
 {
+    // We can't set up header here so skip
+    //std::stringstream out(std::stringstream::binary);
+    std::stringstream out;
+
+    int bytes_per_code = 2;
+    auto* node = this->root.get();
+
+    while(!input.eof())
+    {
+        uint8_t c;
+        input.read((char*)&c, sizeof(uint8_t));
+        std::cout << "[" << __func__ << "] read " << c << " from input" << std::endl;
+
+        auto result_node = this->search_node(lzw_symbol_t(c), node);
+
+        if(!result_node)
+        {
+            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+            this->insert(lzw_symbol_t(c), node);
+            node = this->root->children.find(c)->second.get();  // previous character node
+            
+            // if we have encoded a large value adjust the size of the output code 
+            if(this->cur_key == 0xFFFF)
+                bytes_per_code = 3;
+            if(this->cur_key == 0xFFFFFF)
+                bytes_per_code = 4;
+        }
+        else
+            node = result_node;    // input concat node
+    }
+
+    return out;
 }
 
 

@@ -49,7 +49,8 @@ class LZWDict
         void init(void);
         void clear_dict(void);
         std::vector<uint32_t> encode(const std::string_view data);
-        void encode2(const std::string& filename);
+        //std::string py_encode(py::buffer input);
+        std::stringstream encode2(std::stringstream& input);
 
 
 

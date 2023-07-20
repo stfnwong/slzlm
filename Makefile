@@ -15,11 +15,14 @@ PYTHON_DIR=/usr/include/python$(PYTHON_VERSION)/
 PYTHON_CFLAGS=$(shell python$$PYTHON_VERSION-config --cflags)
 PYTHON_LDFLAGS=$(shell python$$PYTHON_VERSION-config --ldflags)
 
+# TODO: need a way to be able to compile the C++ stuff standalone to get compilation 
+# time down for testing...
+
 # Tool options
 CXX=g++
 OPT=-O0
 #CXXFLAGS=-Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared $(PYTHON_CFLAGS)
-CXXFLAGS=$(PYTHON_CFLAGS) -Wall -g2 -std=c++17 -D_REENTRANT  -fPIC -shared 
+CXXFLAGS=$(PYTHON_CFLAGS) -Wall -g2 -std=c++17 -D_REENTRANT  -fPIC -shared $(OPT)
 TESTFLAGS=
 LDFLAGS=$(PYTHON_LDFLAGS) -lpython3.11
 LIBS= 

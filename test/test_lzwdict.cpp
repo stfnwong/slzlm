@@ -126,11 +126,146 @@ TEST_CASE("test_stringstream", "lzw")
     const std::string test_filename = "sstring.test";
 
     std::ofstream file(test_filename, std::ios::binary);
-    file.write((const char*) &sample_data[0], sample_data.size() * sizeof(uint8_t));
+    //file.write((const char*) oss.rdbuf(), oss.tellp() * sizeof(const char));
+    //file.write((const char*) &sample_data[0], sample_data.size() * sizeof(uint8_t));
+    file << oss.str();
     file.close();
 
 
 
+}
+
+
+TEST_CASE("test_encode2", "lzw")
+{
+    unsigned test_data_size = 256;
+    std::stringstream test_data;
+
+    test_data << "babaabaaa";
+    
+    //for(unsigned i = 0; i < test_data_size; ++i)
+    //    test_data.write(reinterpret_cast<const char*>(&i), sizeof(const char));
+
+    LZWDict lzw;
+    auto enc_out = lzw.encode2(test_data);
+    // write this to some random file
+    const std::string test_filename = "encode2.test";
+    std::ofstream file(test_filename, std::ios::binary);
+    file << enc_out.rdbuf();
+
+    enc_out.seekp(0, std::ios::beg);
+    
+    std::cout << "enc_out:" << enc_out.str() << std::endl;
+    std::cout << "rdbuf:" << enc_out.rdbuf() << std::endl;
+
+    //enc_out.seekp(0, std::ios::end);
+    //size_t buf_size = enc_out.tellp();
+    //enc_out.seekp(0, std::ios::beg);
+    //file.write(enc_out.rdbuf(), buf_size);
+    
+    //for(const uint8_t b : enc_out.rdbuf())
+    //    file.write(reinterpret_cast<const char*>(&b), sizeof(const char));
+
+    file.close();
+}
+
+
+
+TEST_CASE("test_deez_nuts", "lzw")
+{
+    LZWDict lzw;
+
+    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
+    std::stringstream ss;
+    ss << test_input;
+    auto enc = lzw.encode2(ss);
+
+
+    //enc.seekg(0, std::ios::beg);
+    //auto start = enc.tellg();
+    //enc.seekg(0, std::ios::end);
+    //auto enc_size = std::size_t(ss.tellg() - start);
+    //std::cout << "enc_size : " << enc_size << std::endl;
+    //enc.seekg(0, std::ios::beg);
+
+    std::vector<uint16_t> out_data;
+
+    char word_buf[2];
+    enc.seekg(0, std::ios::beg);
+    while(!enc.eof())
+    {
+        if(enc.fail())
+            break;
+
+        enc.read(word_buf, 2);
+        uint16_t word = word_buf[1] << 8 | word_buf[0];
+        out_data.push_back(word);
+    }
+
+
+
+
+    //enc.read(reinterpret_cast<const char*>(out_data.data()), std::streamsize(out_data.size()));
+
+
+
+
+    //while(!enc.eof())
+    //{
+    //    char buf[2];
+    //    enc.read(&buf, sizeof(uint16_t));
+    //    out_data.push_back(buf);
+    //}
+    //enc.seekp(0, std::ios::beg);
+
+    //do
+    //{
+    //    for(uint16_t number; enc >> number;)
+    //        out_data.push_back(number);
+    //    if(enc.fail())
+    //        break;
+    //} while(!enc.eof());
+
+    //const std::string enc_str = enc.rdbuf()->str();
+    //std::cout << "enc.rdbuf()->str() : " << enc_str << std::endl;
+    //std::ofstream file("encbuf.dat", std::ios::binary);
+    //file << enc_str;
+    //file.close();
+
+    //std::vector<uint16_t> out_data;
+    //const std::string& enc_str = enc.str();
+    //out_data.insert(out_data.end(), enc_str.begin(), enc_str.end());
+
+    std::cout << "Deez nuts (length " << out_data.size() << ") encoded to: ";
+    for(unsigned i = 0; i < out_data.size(); ++i)
+        std::cout << out_data[i] << " ";
+    std::cout << std::endl;
+
+    std::vector<std::string> words = {
+        "a",    // 97
+        "b",    // 98
+        "ba",   // 256
+        "ab",   // 257
+        "baa",  // 258
+        "aba",  // 259
+        "aa",   // 260
+        "bb",   // 98, 98
+        "babaa", // 256, 258
+    };
+
+    std::vector<std::vector<lzw_symbol_t>> exp_codes = {
+        {97},       // a
+        {98},       // b
+        {256},      // ba 
+        {257},      // ab
+        {258},      // baa
+        {259},      // aba
+        {260},      // aa
+        {98, 98},   // bb
+        {256, 258}, // babaa
+    };
+
+    REQUIRE(words.size() == exp_codes.size());
 }
 
 
