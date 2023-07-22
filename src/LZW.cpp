@@ -16,6 +16,9 @@
 #include "LZW.hpp"
 
 
+/*
+ * Node for function implementation
+ */
 struct Node
 {
     uint32_t value;
@@ -29,7 +32,10 @@ struct Node
 
 
 
-// Functional implementation of encode and decode 
+
+/*
+ * Encode data to LZW stream
+ */
 std::stringstream lzw_encode(const std::string_view data)
 {
     std::stringstream out;
@@ -45,8 +51,6 @@ std::stringstream lzw_encode(const std::string_view data)
     out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
     out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
     out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
-
-    std::cout << "[" << __func__ << "] out.str() (" << out.str().size() << "): " << out.str() << std::endl;
 
     std::unique_ptr<Node> prefix_tree = std::make_unique<Node>();
 
@@ -93,12 +97,13 @@ std::stringstream lzw_encode(const std::string_view data)
     out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
     out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
 
-    std::cout << "[" << __func__ << "] out.str() (at end) (" << out.str().size() << "): " << out.str() << std::endl;
-
     return out;
 }
 
 
+/*
+ * Decode LZW stream
+ */
 std::stringstream lzw_decode(std::stringstream& input)
 {
     // Assume that the input contains header with format 
@@ -145,6 +150,9 @@ std::stringstream lzw_decode(std::stringstream& input)
 }
 
 
+/*
+ * LZW Objects
+ */
 
 // LZWDict private methods
 LZWDict::LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
@@ -216,7 +224,10 @@ void LZWDict::clear_dict(void)
     
 
 
-
+/*
+ * contains()
+ * Returns true if there is a prefix that matches the sequence in data
+ */
 bool LZWDict::contains(const std::string_view data) const
 {
     auto* node = this->root.get();
@@ -235,7 +246,6 @@ bool LZWDict::contains(const std::string_view data) const
 }
 
 
-// TODO: this may turn into decode....? 
 std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
 {
     std::vector<uint16_t> out;
