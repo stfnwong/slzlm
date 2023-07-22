@@ -9,13 +9,14 @@
 
 #include "Trie.hpp"
 #include "LZW.hpp"
+//#include "Stream.hpp"
 
 
 namespace py = pybind11;
 
 
 //std::string bytes_test(std::stringstream& input)
-py::bytes bytes_test(const py::bytes& input)            // std::string works the same way in interpreter
+py::bytes bytes_test(const std::string_view input)            // std::string works the same way in interpreter
 {
     std::ostringstream out;
 
@@ -37,32 +38,40 @@ py::bytes bytes_test(const py::bytes& input)            // std::string works the
 
 
 
+py::bytes encode_wrapper(const std::string& input)
+{
+    LZWDict lzw;
+    std::stringstream ss;
+    ss << input;
+    
+    auto ret = lzw.encode(ss);
+
+    return py::bytes(ret.data.str());
+}
+
+
 
 PYBIND11_MODULE(slz, m)
 {
+    
+    // LZStream
+    py::class_ <LZStream>(m, "LZStream")
+        .def(py::init<>())
+        .def("write", &LZStream::write);
+
+    // LZW object 
     py::class_ <LZWDict>(m, "LZWDict")
         .def(py::init<>())
         .def("encode", &LZWDict::encode)
         .def("get_code", &LZWDict::get_code)
         .def("contains", &LZWDict::contains);
 
+    // Prefix tree
     py::class_ <Trie>(m, "Trie")
         .def(py::init<>())
         .def("insert", &Trie::insert)
         .def("search", &Trie::search);
 
+    m.def("encode_wrapper", &encode_wrapper);
     m.def("bytes_test", &bytes_test);
-
-    m.def("return_bytes",
-            []() {
-            std::ostringstream oss;
-
-            unsigned max_alpha_size = 256;
-            for(unsigned i = 0; i < max_alpha_size; ++i)
-                oss.write(reinterpret_cast<const char*>(&i), sizeof(uint8_t));
-
-            //std::string s("\xba\xd0\xba\xd0");      // not valid UTF-8
-            return py::bytes(oss.str());        // this ends up being bytes type in python shell
-            }
-         );
 }

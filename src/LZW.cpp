@@ -132,25 +132,50 @@ std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
 
 
 
-std::vector<uint32_t> LZWDict::encode(const std::string_view data)
-{
-    std::vector<uint32_t> out;
-    auto* node = this->root.get();
 
-    for(auto const c : data)
+LZStream LZWDict::encode(std::stringstream& input)
+{
+    LZStream out;
+    auto* node = this->root.get();
+    unsigned bytes_per_code = 2;
+    unsigned size = 0;      // total stream length
+
+    char c;
+    while(input)
     {
+        if(!input.get(c))
+            break;
+        if(input.eof() || input.fail())
+            break;
+
         auto* result_node = this->search_node(lzw_symbol_t(c), node);
-        if(result_node == nullptr)
+        if(!result_node)
         {
-            out.push_back(node->value);
+            out.write(node->value, bytes_per_code);
             this->insert(lzw_symbol_t(c), node);
-            node = this->root->children.find(c)->second.get();  // p = c node
-            //node = this->insert(lzw_symbol_t(c), node);  // this implementation is incorrect - makes very deep tree
+            node = this->root->children.find(c)->second.get();
+            size += bytes_per_code;
+
+            if(this->cur_key == 0xFFFF)
+            {
+                bytes_per_code = 3;
+                out.offset24 = size;
+            }
+            if(this->cur_key == 0xFFFFFF)
+            {
+                bytes_per_code = 4;
+                out.offset32 = size;
+            }
         }
         else
-            node = result_node;    // (p = p + c) node  
+            node = result_node;
     }
-    
+
+    out.write(node->value, bytes_per_code);
+    size += bytes_per_code;
+    out.size = size;
+    out.num_codes = this->cur_key;
+
     return out;
 }
 
@@ -256,11 +281,63 @@ std::stringstream LZWDict::encode2(std::stringstream& input)
 
 
 // TODO: don't use this - its just for testing the algorithm
-std::vector<uint16_t> LZWDict::decode(const std::vector<uint32_t>& data) const
+std::stringstream LZWDict::decode(const std::vector<uint32_t>& data) const
 {
-    std::vector<uint16_t> out;
+    std::stringstream out;
+    std::vector<std::vector<uint32_t>> table(LZW_ALPHA_SIZE);
+    //std::vector<std::string> table(LZW_ALPHA_SIZE);
+    std::vector<uint32_t> s;
 
+    // Init table 
+    for(uint16_t i = 0; i < LZW_ALPHA_SIZE; ++i)
+        table[i].push_back(i);
 
+    unsigned cur_key = table.size();
+
+    uint32_t old_code = data[0];         // old 
+    uint32_t new_code = 0;         // new
+    uint32_t c = 0;
+    //uint32_t cur_seq;
+
+    // write the first code 
+    out.write(reinterpret_cast<const char*>(&table[old_code][0]), sizeof(uint16_t));
+
+    // In real life we need to keep track of the code size
+    for(unsigned i = 1; i < data.size(); ++i)
+    {
+        new_code = data[i];    // artificially this is always the same size
+        if(new_code >= table.size())
+        {
+            s.push_back(old_code);
+            s.push_back(c);
+            // s = t(old + c)
+            //cur_seq = old_code + new_code;
+            //s.push_back(cur_code + table[old_code]);
+        }
+        else
+        {
+            s.clear();
+            for(const auto elem : table[new_code])
+                s.push_back(elem);
+            //cur_seq = table[new_code];
+        }
+
+        // output s
+        for(const auto symbol : s)
+            out.write(reinterpret_cast<const char*>(&symbol), sizeof(uint16_t));
+        c = s[0];
+        std::cout << "[" << __func__ << "] s at [" << i << "]: ";
+        for(const auto symbol : s)
+            std::cout << symbol << " ";
+        std::cout << std::endl;
+
+        table.push_back({old_code, c});
+
+        // update table
+        //table[cur_code] = (table[old_code] + cur_code);
+        old_code = new_code;
+        cur_key++;
+    }
 
     return out;         // shut linter up
 }

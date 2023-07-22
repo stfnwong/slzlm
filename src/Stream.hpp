@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 
 struct LZStream
@@ -22,6 +23,7 @@ struct LZStream
     std::stringstream data;
 
     public:
+        std::vector<uint8_t> to_vec(void);
         void to_file(const std::string& filename);
         void write(uint32_t value, unsigned code_size);
 };
