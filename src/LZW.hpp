@@ -56,16 +56,9 @@ class LZWDict
         LZWDict();
         void init(void);
         void clear_dict(void);
-        LZStream encode(std::stringstream& input);
-        std::stringstream encode2(std::stringstream& input);
 
+        std::stringstream encode(std::stringstream& input);
 
-
-        // This encode-to-file method is a placeholder for maybe a more general method 
-        void encode_to_file(const std::string& filename, const std::string_view data);
-
-        // TODO: encode and decode to streams
-        
 
         std::vector<uint16_t> get_code(const std::string_view word) const;       // <- debug only, remove
         std::stringstream decode(const std::vector<uint32_t>& data) const;

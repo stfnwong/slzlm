@@ -15,42 +15,6 @@
 namespace py = pybind11;
 
 
-//std::string bytes_test(std::stringstream& input)
-py::bytes bytes_test(const std::string_view input)            // std::string works the same way in interpreter
-{
-    std::ostringstream out;
-
-    //char c;
-    //while(input)
-    //{
-    //    if(!input.get(c))
-    //        break;
-    //    if(input.eof() || input.fail())
-    //        break;
-    //    out.write(reinterpret_cast<const char*>(&c), sizeof(const char));
-    //}
-
-    for(const auto c : input)
-        out.write(reinterpret_cast<const char*>(&c), sizeof(const char));
-
-    return py::bytes(out.str());
-}
-
-
-
-py::bytes encode_wrapper(const std::string& input)
-{
-    LZWDict lzw;
-    std::stringstream ss;
-    ss << input;
-    
-    auto ret = lzw.encode(ss);
-
-    return py::bytes(ret.data.str());
-}
-
-
-
 PYBIND11_MODULE(slz, m)
 {
     
@@ -72,6 +36,6 @@ PYBIND11_MODULE(slz, m)
         .def("insert", &Trie::insert)
         .def("search", &Trie::search);
 
-    m.def("encode_wrapper", &encode_wrapper);
-    m.def("bytes_test", &bytes_test);
+    // Function encode 
+    m.def("lzw_encode", &lzw_encode);
 }

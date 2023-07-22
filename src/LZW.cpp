@@ -246,6 +246,10 @@ bool LZWDict::contains(const std::string_view data) const
 }
 
 
+/*
+ * Return the prefix code for some sequence if it exists, otherwise 
+ * return an empty vector.
+ */
 std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
 {
     std::vector<uint16_t> out;
@@ -273,15 +277,26 @@ std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
 
 
 
-// Return as a stream with the header information at the start
-LZStream LZWDict::encode(std::stringstream& input)
+/*
+ * Encode a stream into an LZW stream
+ */
+std::stringstream LZWDict::encode(std::stringstream& input)
 {
-    LZStream out;
-    auto* node = this->root.get();
+    std::stringstream out; // this can become a member, the idea being we can keep calling encode on long strings (longer than "memory")
     unsigned bytes_per_code = 2;
-    unsigned size = 0;      // total stream length
+
+    int offset32 = 0;
+    int offset24 = 0;
+    int num_codes = 0;
+
+    // reserve some space in the stream for offsets
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
 
     char c;
+    auto* node = this->root.get();
+
     while(input)
     {
         if(!input.get(c))
@@ -292,87 +307,35 @@ LZStream LZWDict::encode(std::stringstream& input)
         auto* result_node = this->search_node(lzw_symbol_t(c), node);
         if(!result_node)
         {
-            out.write(node->value, bytes_per_code);
+            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             this->insert(lzw_symbol_t(c), node);
             node = this->root->children.find(c)->second.get();
-            size += bytes_per_code;
 
             if(this->cur_key == 0xFFFF)
             {
                 bytes_per_code = 3;
-                out.offset24 = size;
+                offset24 = out.tellp();
             }
             if(this->cur_key == 0xFFFFFF)
             {
                 bytes_per_code = 4;
-                out.offset32 = size;
+                offset32 = out.tellp();
             }
         }
         else
             node = result_node;
     }
 
-    out.write(node->value, bytes_per_code);
-    size += bytes_per_code;
-    out.size = size;
-    out.num_codes = this->cur_key;
+    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+
+    // update header 
+    out.seekp(0, std::ios::beg);
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&this->cur_key), sizeof(uint32_t));
 
     return out;
 }
-
-
-// TODO: replace fstream with ostream?
-void LZWDict::encode_to_file(const std::string& filename, const std::string_view data)
-{
-    std::ofstream file(filename, std::ios::binary);
-
-    // Write empty space for header
-    file.seekp(1 * sizeof(uint32_t), file.beg);         // number of 24-bit codes 
-    file.seekp(2 * sizeof(uint32_t), file.beg);         // number of 32-bit codes
-    file.seekp(3 * sizeof(uint32_t), file.beg);         // total number of codes
-
-    int bytes_per_code = 2;
-    auto* node = this->root.get();
-
-    // record offset for 24 and 32 bit codes here 
-    int offset_24bit_codes = 0;
-    int offset_32bit_codes = 0;
-
-    for(auto const c: data)
-    {
-        auto* result_node = this->search_node(lzw_symbol_t(c), node);
-        if(!result_node)
-        {
-            file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-            this->insert(lzw_symbol_t(c), node);
-            node = this->root->children.find(c)->second.get();
-
-            if(this->cur_key == 0xFFFF)
-            {
-                bytes_per_code = 3;         // 2^16 - 1
-                offset_24bit_codes = int(file.tellp());
-            }
-            else if(this->cur_key == 0xFFFFFF)
-            {
-                bytes_per_code = 4;         // 2^24 - 1
-                offset_32bit_codes = int(file.tellp());
-            }
-        }
-        else
-            node = result_node;
-    }
-
-    file.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-
-    // Write header information
-    file.seekp(0, file.beg);
-    file.write(reinterpret_cast<const char*>(&offset_24bit_codes), sizeof(uint32_t));
-    file.write(reinterpret_cast<const char*>(&offset_32bit_codes), sizeof(uint32_t));
-    file.write(reinterpret_cast<const char*>(&this->cur_key), sizeof(uint32_t));
-
-    file.close();
-}
-
 
 
 // TODO: don't use this - its just for testing the algorithm

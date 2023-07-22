@@ -21,7 +21,7 @@
  * This implementation doesn't take account the variation in code
  * size over the stream.
  */
-template <typename T> std::vector<T> consume_stream_to_vec(std::stringstream& ss)
+template <typename T> std::vector<T> stream_to_vec(std::stringstream& ss)
 {
     std::vector<T> out_vec;
     unsigned bytes_read = 0;
