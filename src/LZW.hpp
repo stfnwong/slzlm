@@ -59,7 +59,6 @@ class LZWDict
 
         std::stringstream encode(std::stringstream& input);
 
-
         std::vector<uint16_t> get_code(const std::string_view word) const;       // <- debug only, remove
         std::stringstream decode(const std::vector<uint32_t>& data) const;
         bool contains(const std::string_view data) const;
