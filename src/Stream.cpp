@@ -40,6 +40,7 @@ void LZStream::to_file(const std::string& filename)
         this->data.read(&c, sizeof(const char));
         file.write(&c, sizeof(const char));
     }
+    this->data.seekp(0, std::ios::beg);
 
     file.close();
 }

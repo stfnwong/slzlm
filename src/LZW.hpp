@@ -23,8 +23,14 @@ using lzw_symbol_t = uint16_t;
 
 // TODO: re-write as functions
 
+// Encode function
+std::stringstream lzw_encode(const std::string_view data);
+std::stringstream lzw_decode(std::stringstream& data);
 
 
+/*
+ * This will turn into an object-oriented encoder
+ */
 class LZWDict
 {
     // Prefix tree node

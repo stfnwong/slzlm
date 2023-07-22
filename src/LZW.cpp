@@ -16,6 +16,136 @@
 #include "LZW.hpp"
 
 
+struct Node
+{
+    uint32_t value;
+    bool leaf;
+    std::map<lzw_symbol_t, std::unique_ptr<Node>> children;
+
+    public:
+        Node() {} 
+        Node(uint32_t v, bool l) : value(v), leaf(l) {}
+};
+
+
+
+// Functional implementation of encode and decode 
+std::stringstream lzw_encode(const std::string_view data)
+{
+    std::stringstream out;
+    int bytes_per_code = 2;    // minimum code size is 16-bits
+    int offset24 = 0;
+    int offset32 = 0;
+    int num_codes = 0;
+    uint32_t cur_key = 0;
+
+    // Write offset data to start of stream
+    out.seekp(0);
+    // write dummy values for later 
+    //out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    //out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    //out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
+
+    std::cout << "[" << __func__ << "] out.str() (" << out.str().size() << "): " << out.str() << std::endl;
+
+    std::unique_ptr<Node> prefix_tree = std::make_unique<Node>();
+
+    // Init the dict 
+    auto* node = prefix_tree.get();
+    for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
+        node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
+
+    for(const auto& c: data)
+    {
+        auto& children = node->children;
+        // see if we have c already
+        auto it = children.find(c);
+
+        //auto result_node = children.find(c)->second.get();
+        if(it == children.end())
+        {
+            // write this code to output
+            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+            // insert 
+            it = node->children.find(c);
+            if(it == children.end())
+                it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
+            //node = it->second.get();
+            node = prefix_tree->children.find(c)->second.get();
+            cur_key++;
+
+            if(cur_key == 0xFFFF)
+            {
+                bytes_per_code = 3;
+                offset24 = out.tellp();
+            }
+            if(cur_key == 0xFFFFFF)
+            {
+                bytes_per_code = 4;
+                offset32 = out.tellp();
+            }
+        }
+        else
+            node = it->second.get();
+    }
+    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+    // go back and write the offsets
+    //out.seekp(0, std::ios::beg);
+    //out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    //out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    //out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
+
+    std::cout << "[" << __func__ << "] out.str() (at end) (" << out.str().size() << "): " << out.str() << std::endl;
+
+    return out;
+}
+
+
+std::stringstream lzw_decode(std::stringstream& input)
+{
+    // Assume that the input contains header with format 
+    // offset24 (4 bytes)  - offset where first 24-bit code occurs. 0 = no 24 bit codes
+    // effset32 (4 bytes)  - offset where first 32-bit code occurs. 0 = no 32 bit codes
+    // num_codes (4 bytes) - total number of unique codes
+
+    std::stringstream out;
+    std::stringstream s;
+    uint32_t offset24 = 0;
+    uint32_t offset32 = 0;
+    uint32_t num_codes = 0;
+    
+    // read codes 
+    //input.read(&offset24, sizeof(uint32_t));
+    //input.read(&offset32, sizeof(uint32_t));
+    //input.read(&num_codes, sizeof(uint32_t));
+
+    // we should be at tellp() == 3 * sizeof(uint32_t)
+
+    std::vector<std::stringstream> table(LZW_ALPHA_SIZE);
+
+    // Create symbol table
+    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+        table[i].write(reinterpret_cast<const char*>(&i), sizeof(uint16_t));
+
+    char c;
+    input.get(c);
+    if(input.eof() || input.fail())
+        return out;
+
+
+    while(input)
+    {
+        if(!input.get(c))
+            break;
+        if(input.eof() || input.fail())
+            break;
+    }
+
+    return out;
+}
+
+
+
 // LZWDict private methods
 LZWDict::LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
 {
@@ -133,6 +263,7 @@ std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
 
 
 
+// Return as a stream with the header information at the start
 LZStream LZWDict::encode(std::stringstream& input)
 {
     LZStream out;
@@ -232,52 +363,6 @@ void LZWDict::encode_to_file(const std::string& filename, const std::string_view
     file.close();
 }
 
-
-// TODO: maybe definition goes in some other file 
-//std::string LZWDict::py_encode(const std::string_view data
-
-
-std::stringstream LZWDict::encode2(std::stringstream& input)
-{
-    // We can't set up header here so skip
-    std::stringstream out;
-
-    size_t size = 0;        // output length in bytes
-    int bytes_per_code = 2;
-    auto* node = this->root.get();
-
-    char c;
-    while(input)
-    {
-        if(!input.get(c))
-            break;
-        if(input.eof() || input.fail())
-            break;
-
-        auto result_node = this->search_node(lzw_symbol_t(c), node);
-
-        if(!result_node)
-        {
-            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-            this->insert(lzw_symbol_t(c), node);
-            node = this->root->children.find(c)->second.get();  // previous character node
-
-            size += bytes_per_code;
-            
-            // if we have encoded a large value adjust the size of the output code 
-            if(this->cur_key == 0xFFFF)
-                bytes_per_code = 3;
-            if(this->cur_key == 0xFFFFFF)
-                bytes_per_code = 4;
-        }
-        else
-            node = result_node;    // input concat node
-    }
-    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-    size += bytes_per_code;
-
-    return out;
-}
 
 
 // TODO: don't use this - its just for testing the algorithm

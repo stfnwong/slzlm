@@ -13,6 +13,32 @@
 
 
 
+TEST_CASE("test_function_encode", "lzw")
+{
+    const std::string test_data = "babaabaaa";
+    std::stringstream enc_out = lzw_encode(test_data);
+
+    std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
+    //enc_out.seekp(3 * sizeof(uint32_t), std::ios::beg);
+    std::vector<uint16_t> stream_vec = consume_stream_to_vec<uint16_t>(enc_out);
+
+    std::cout << "function encode stream vec: " << std::endl;
+    for(const auto c: stream_vec)
+        std::cout << c << " ";
+    std::cout << std::endl;
+
+    REQUIRE(exp_data.size() == stream_vec.size());
+    for(unsigned i = 0; i < stream_vec.size(); ++i)
+        REQUIRE(exp_data[i] == stream_vec[i]);
+}
+
+
+//TEST_CASE("test_clear_dict", "lzw")
+//{
+//    LZWDict lzw;
+//}
+
+
 
 TEST_CASE("test_encode_simple_string", "lzw")
 {
@@ -25,6 +51,9 @@ TEST_CASE("test_encode_simple_string", "lzw")
 
     std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
     std::vector<uint16_t> out_data;
+
+    std::cout << "enc.data.str() before read (" << enc.data.tellp() << ")" << std::endl;
+    std::cout << enc.data.str() << std::endl;
 
     // TODO: provide an interface for enc.data?
     unsigned bytes_read = 0;
@@ -43,6 +72,10 @@ TEST_CASE("test_encode_simple_string", "lzw")
         bytes_read++;
     }
 
+    enc.data.seekp(0);
+    std::cout << "enc.data.str() after read (with seek) [" << enc.data.tellp() << "]" << std::endl;
+    std::cout << enc.data.str() << std::endl;
+
     std::cout << "encode2() output data: [";
     for(const auto& elem: out_data)
         std::cout << elem << " ";
@@ -54,44 +87,44 @@ TEST_CASE("test_encode_simple_string", "lzw")
 
 }
 
-TEST_CASE("test_encode2_to_file", "lzw")
-{
-    LZWDict lzw;
-
-    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
-    std::stringstream ss;
-    ss << test_input;
-    auto enc = lzw.encode(ss);
-
-    const std::string test_filename = "encode2_disk.test";
-
-    std::ofstream file(test_filename, std::ios::binary);
-
-    std::vector<uint16_t> out_data;
-    char word_buf[2];
-
-    char buf;
-    unsigned read_count = 0;
-    while(!enc.data.eof())
-    {
-        if(enc.data.fail())
-            break;
-
-        enc.data.read(&buf, 1);
-        file.write(reinterpret_cast<const char*>(&buf), sizeof(const char));
-        read_count++;
-
-        word_buf[read_count % 2] = buf;
-        if(read_count % 2)
-            out_data.push_back(word_buf[1] << 8 | word_buf[0]);
-    }
-
-    file.close();
-
-
-    // read the file off disk and check?
-
-}
+//TEST_CASE("test_encode2_to_file", "lzw")
+//{
+//    LZWDict lzw;
+//
+//    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
+//    std::stringstream ss;
+//    ss << test_input;
+//    auto enc = lzw.encode(ss);
+//
+//    const std::string test_filename = "encode2_disk.test";
+//
+//    std::ofstream file(test_filename, std::ios::binary);
+//
+//    std::vector<uint16_t> out_data;
+//    char word_buf[2];
+//
+//    char buf;
+//    unsigned read_count = 0;
+//    while(!enc.data.eof())
+//    {
+//        if(enc.data.fail())
+//            break;
+//
+//        enc.data.read(&buf, 1);
+//        file.write(reinterpret_cast<const char*>(&buf), sizeof(const char));
+//        read_count++;
+//
+//        word_buf[read_count % 2] = buf;
+//        if(read_count % 2)
+//            out_data.push_back(word_buf[1] << 8 | word_buf[0]);
+//    }
+//
+//    file.close();
+//
+//
+//    // read the file off disk and check?
+//
+//}
 
 
 TEST_CASE("test_fake_decode", "lzw")
@@ -146,79 +179,3 @@ TEST_CASE("test_fake_decode", "lzw")
 //}
 
 
-
-TEST_CASE("test_encode2", "lzw")
-{
-    unsigned test_data_size = 256;
-    std::stringstream test_data;
-
-    test_data << "babaabaaa";
-    
-    //for(unsigned i = 0; i < test_data_size; ++i)
-    //    test_data.write(reinterpret_cast<const char*>(&i), sizeof(const char));
-
-    LZWDict lzw;
-    auto enc_out = lzw.encode2(test_data);
-    // write this to some random file
-    const std::string test_filename = "encode2.test";
-    std::ofstream file(test_filename, std::ios::binary);
-    file << enc_out.rdbuf();
-
-    enc_out.seekp(0, std::ios::beg);
-    
-    //enc_out.seekp(0, std::ios::end);
-    //size_t buf_size = enc_out.tellp();
-    //enc_out.seekp(0, std::ios::beg);
-    //file.write(enc_out.rdbuf(), buf_size);
-    
-    //for(const uint8_t b : enc_out.rdbuf())
-    //    file.write(reinterpret_cast<const char*>(&b), sizeof(const char));
-
-    file.close();
-}
-
-
-
-
-
-TEST_CASE("test_clear_dict", "lzw")
-{
-    LZWDict lzw;
-
-    //std::vector<std::string> test = {"a", "b", "c", "d"};
-    //for(unsigned i = 0; i < test.size(); ++i)
-    //{
-    //    std::cout << "Checking [" << std::string(i) << "]" << std::endl;
-    //    REQUIRE(lzw.contains(std::string(i)) == true);
-    //}
-
-    //for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-    //    REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
-    //for(unsigned i = LZW_ALPHA_SIZE; i < 2 * LZW_ALPHA_SIZE; ++i)
-    //    REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
-
-    //const std::string input = "babaabaaa";
-    //auto codes = lzw.encode(input);   // should be 260 symbols now 
-
-    //for(unsigned i = 0; i < 1 * LZW_ALPHA_SIZE; ++i)
-    //{
-    //    if(i < 260)
-    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
-    //    else
-    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
-    //}
-    //
-    //// if we clear the dict now there should be zero entries 
-    //lzw.clear_dict();
-    //for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-    //    REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
-
-    //lzw.init();
-    //for(unsigned i = 0; i < 1 * LZW_ALPHA_SIZE; ++i)
-    //{
-    //    if(i < LZW_ALPHA_SIZE)
-    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == true);
-    //    else
-    //        REQUIRE(lzw.contains(std::string(reinterpret_cast<const char*>(&i), 2)) == false);
-    //}
-}
