@@ -19,13 +19,9 @@ TEST_CASE("test_function_encode", "lzw")
     std::stringstream enc_out = lzw_encode(test_data);
 
     std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
-    //enc_out.seekp(3 * sizeof(uint32_t), std::ios::beg);
+    enc_out.seekg(3 * sizeof(uint32_t), std::ios::beg);   // skip over the header 
+    // TODO: if I pass stringstream here does it keep the pointer?
     std::vector<uint16_t> stream_vec = consume_stream_to_vec<uint16_t>(enc_out);
-
-    std::cout << "function encode stream vec: " << std::endl;
-    for(const auto c: stream_vec)
-        std::cout << c << " ";
-    std::cout << std::endl;
 
     REQUIRE(exp_data.size() == stream_vec.size());
     for(unsigned i = 0; i < stream_vec.size(); ++i)

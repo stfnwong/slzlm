@@ -42,9 +42,9 @@ std::stringstream lzw_encode(const std::string_view data)
     // Write offset data to start of stream
     out.seekp(0);
     // write dummy values for later 
-    //out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
-    //out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
-    //out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
 
     std::cout << "[" << __func__ << "] out.str() (" << out.str().size() << "): " << out.str() << std::endl;
 
@@ -61,7 +61,6 @@ std::stringstream lzw_encode(const std::string_view data)
         // see if we have c already
         auto it = children.find(c);
 
-        //auto result_node = children.find(c)->second.get();
         if(it == children.end())
         {
             // write this code to output
@@ -70,7 +69,6 @@ std::stringstream lzw_encode(const std::string_view data)
             it = node->children.find(c);
             if(it == children.end())
                 it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
-            //node = it->second.get();
             node = prefix_tree->children.find(c)->second.get();
             cur_key++;
 
@@ -90,10 +88,10 @@ std::stringstream lzw_encode(const std::string_view data)
     }
     out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
     // go back and write the offsets
-    //out.seekp(0, std::ios::beg);
-    //out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
-    //out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
-    //out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
+    out.seekp(0, std::ios::beg);
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
 
     std::cout << "[" << __func__ << "] out.str() (at end) (" << out.str().size() << "): " << out.str() << std::endl;
 
@@ -107,6 +105,8 @@ std::stringstream lzw_decode(std::stringstream& input)
     // offset24 (4 bytes)  - offset where first 24-bit code occurs. 0 = no 24 bit codes
     // effset32 (4 bytes)  - offset where first 32-bit code occurs. 0 = no 32 bit codes
     // num_codes (4 bytes) - total number of unique codes
+    //
+    // first code is guaranteed to be min_code_size (2 bytes) long.
 
     std::stringstream out;
     std::stringstream s;

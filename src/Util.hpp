@@ -11,20 +11,28 @@
 #include <sstream>
 #include <vector>
 
+// TODO: debug only
+#include <iostream>
+
+
 
 template <typename T> std::vector<T> consume_stream_to_vec(std::stringstream& ss)
 {
     std::vector<T> out_vec;
     unsigned bytes_read = 0;
 
+    char buf;
+    char word_buf[2];
+
     while(ss)
     {
         if(ss.eof() || ss.fail())
             break;
+        if(!ss.get(buf))
+            break;
 
-        char word_buf[2];
-        char buf;
-        ss.read(&buf, sizeof(uint8_t));
+        // How to get the size of the buffer here correct for any T?
+        //ss.read(&buf, sizeof(uint8_t));
         word_buf[bytes_read % 2] = buf;
         
         if(bytes_read % 2)
