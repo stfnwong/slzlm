@@ -9,28 +9,27 @@
 
 #include "Trie.hpp"
 #include "LZW.hpp"
-//#include "Stream.hpp"
 
 
 namespace py = pybind11;
 
 
-// Wrappers 
+// Wrappers for encode/decode standalone functions
 std::string py_lzw_encode(const std::string& input)
 {
     return py::bytes(lzw_encode(input).str());
+}
+
+std::string py_lzw_decode(const std::string& input)
+{
+    std::stringstream ss(input);
+    return py::bytes(lzw_decode(ss).str());
 }
 
 
 
 PYBIND11_MODULE(slz, m)
 {
-    
-    // LZStream
-    py::class_ <LZStream>(m, "LZStream")
-        .def(py::init<>())
-        .def("write", &LZStream::write);
-
     // LZW object 
     py::class_ <LZWDict>(m, "LZWDict")
         .def(py::init<>())
@@ -46,4 +45,5 @@ PYBIND11_MODULE(slz, m)
 
     // Function encode 
     m.def("lzw_encode", &py_lzw_encode);
+    m.def("lzw_decode", &py_lzw_decode);
 }

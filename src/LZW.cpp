@@ -114,7 +114,6 @@ std::stringstream lzw_decode(std::stringstream& input)
     // first code is guaranteed to be min_code_size (2 bytes) long.
 
     std::stringstream out;
-    //std::stringstream s;
 
     // Decode header
     uint32_t header[3];     // offset24, offset32, num_codes
@@ -130,42 +129,32 @@ std::stringstream lzw_decode(std::stringstream& input)
             header_buf[0];
     }
 
-    int bytes_per_code = 2;
 
-    // we should be at tellp() == 3 * sizeof(uint32_t)
-    //std::cout << "[" << __func__ << "] input.tellg() : " << input.tellg() << std::endl;
     std::vector<std::string> table(LZW_ALPHA_SIZE);
 
     // Create symbol table
     for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
         table[i] += i;
-        //table[i].write(reinterpret_cast<const char*>(&i), sizeof(uint16_t));
 
     std::string s;
-
-    int old_code = 0;
-    int new_code = 0;
-
-    char c;
+    int bytes_per_code = 2;
+    unsigned old_code = 0;
+    unsigned new_code = 0;
+    char buf;
     char cc = 0;
 
     // Get the first code
     for(int i = 0; i < bytes_per_code; ++i)
     {
-        if(!input.get(c))
+        if(!input.get(buf))
             return out;
-        old_code = old_code | (c << (8 * i));
+        old_code = old_code | (buf << (8 * i));
     }
     s += old_code;
     out << s;
-    //out.write(reinterpret_cast<const char*>(&old_code), bytes_per_code);
-
-    // TODO: need to read bytes_per_code bytes at a time
-    //char code_buf[4];
 
     while(input)
     {
-
         // Check what the code size should be 
         if(input.tellg() == header[0])
             bytes_per_code = 3;
@@ -176,15 +165,13 @@ std::stringstream lzw_decode(std::stringstream& input)
         new_code = 0;
         for(int i = 0; i < bytes_per_code; ++i)
         {
-            if(!input.get(c))
+            if(!input.get(buf))
                 break;
-            new_code = new_code | (c << (8 * i));
+            new_code = new_code | (buf << (8 * i));
         }
 
         if(input.eof() || input.fail())
             break;
-
-        std::cout << "[" << __func__ << "] new_code: " << new_code << std::endl;
 
         if(new_code >= table.size())   // unseen code
         {
@@ -193,25 +180,16 @@ std::stringstream lzw_decode(std::stringstream& input)
         }
         else
         {
-            //s = "";
-            //s += table[new_code];
             s = "";
             s += table[new_code];
         }
-
-        std::cout << "[" << __func__ << "] s : [" << s.c_str() << "]" << std::endl;
-
-        //for(const auto ch : s)
-        //    out.write(reinterpret_cast<const char*>(&ch), bytes_per_code);
-        //out.write(s.c_str(), s.size());
-        std::cout << "[" << __func__ << "] wrote: [" << s.c_str() << "]" << std::endl;
         cc = s[0];
         out << s;
 
         std::string new_sym;
         new_sym += table[old_code];
         new_sym += cc;
-        std::cout << "[" << __func__ << "] new_sym : [" << new_sym << "]" << std::endl;
+
         table.push_back(new_sym);
         old_code = new_code;
     }
@@ -409,62 +387,85 @@ std::stringstream LZWDict::encode(std::stringstream& input)
 
 
 // TODO: don't use this - its just for testing the algorithm
-std::stringstream LZWDict::decode(const std::vector<uint32_t>& data) const
+std::stringstream LZWDict::decode(std::stringstream& input) const
 {
     std::stringstream out;
-    std::vector<std::vector<uint32_t>> table(LZW_ALPHA_SIZE);
-    //std::vector<std::string> table(LZW_ALPHA_SIZE);
-    std::vector<uint32_t> s;
+
+    uint32_t header[3]; // 0=offset24, 1=offset32, 2=num_codes
+    char header_buf[4];
+
+    for(unsigned h = 0; h < 3; ++h)
+    {
+        input.read(header_buf, sizeof(uint32_t));
+        header[h] = 
+            header_buf[3] << 24 | 
+            header_buf[2] << 16 | 
+            header_buf[1] << 8 | 
+            header_buf[0];
+    }
 
     // Init table 
-    for(uint16_t i = 0; i < LZW_ALPHA_SIZE; ++i)
-        table[i].push_back(i);
+    std::vector<std::string> table(LZW_ALPHA_SIZE);
+    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+        table[i] += i;
 
-    unsigned cur_key = table.size();
+    // Decode loop
+    std::string s;
+    int bytes_per_code = 2;
+    unsigned old_code = 0;
+    unsigned new_code = 0;
+    char cc = 0;
+    char buf;
 
-    uint32_t old_code = data[0];         // old 
-    uint32_t new_code = 0;         // new
-    uint32_t c = 0;
-    //uint32_t cur_seq;
-
-    // write the first code 
-    out.write(reinterpret_cast<const char*>(&table[old_code][0]), sizeof(uint16_t));
-
-    // In real life we need to keep track of the code size
-    for(unsigned i = 1; i < data.size(); ++i)
+    // Read first code and write directly to output
+    for(int i = 0; i < bytes_per_code; ++i)
     {
-        new_code = data[i];    // artificially this is always the same size
-        if(new_code >= table.size())
+        if(!input.get(buf))
+            return out;             // we can't recover stream anyway, just quit
+        old_code = old_code | (buf << (8 * i));
+    }
+    s += old_code;
+    out << s;
+
+    while(input)
+    {
+        // Check what the code size should be 
+        if(input.tellg() == header[0])
+            bytes_per_code = 3;
+
+        if(input.tellg() == header[1])
+            bytes_per_code = 4;
+
+        new_code = 0;
+        for(int i = 0; i < bytes_per_code; ++i)
         {
-            s.push_back(old_code);
-            s.push_back(c);
-            // s = t(old + c)
-            //cur_seq = old_code + new_code;
-            //s.push_back(cur_code + table[old_code]);
+            if(!input.get(buf))
+                break;
+            new_code = new_code | (buf << (8 * i));
+        }
+
+        if(input.eof() || input.fail())
+            break;
+
+        if(new_code >= table.size())   // unseen code
+        {
+            s = table[old_code];
+            s += cc;
         }
         else
         {
-            s.clear();
-            for(const auto elem : table[new_code])
-                s.push_back(elem);
-            //cur_seq = table[new_code];
+            s = "";
+            s += table[new_code];
         }
+        cc = s[0];
+        out << s;
 
-        // output s
-        for(const auto symbol : s)
-            out.write(reinterpret_cast<const char*>(&symbol), sizeof(uint16_t));
-        c = s[0];
-        std::cout << "[" << __func__ << "] s at [" << i << "]: ";
-        for(const auto symbol : s)
-            std::cout << symbol << " ";
-        std::cout << std::endl;
+        std::string new_sym;
+        new_sym += table[old_code];
+        new_sym += cc;
 
-        table.push_back({old_code, c});
-
-        // update table
-        //table[cur_code] = (table[old_code] + cur_code);
+        table.push_back(new_sym);
         old_code = new_code;
-        cur_key++;
     }
 
     return out;         // shut linter up

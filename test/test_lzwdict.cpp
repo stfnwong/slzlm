@@ -45,19 +45,8 @@ TEST_CASE("test_function_decode", "lzw")
 
     auto dec_out = lzw_decode(input);
 
-    std::vector<std::string> exp_out = {"b", "a", "ba", "ab", "a", "aa"};
     std::string exp_out_str = "babaabaaa";
     std::string dec_out_str = dec_out.str();
-
-    std::ofstream file("dec.out", std::ios::binary);
-    file << dec_out_str;
-    file.close();
-
-    std::cout << "exp_out_str [" << exp_out_str << "]" << std::endl;
-    std::cout << "dec_out_str [" << dec_out_str << "]" << std::endl;
-
-    for(const auto& c: dec_out_str)
-        std::cout << "[" << c << "]";
 
     REQUIRE(exp_out_str.size() == dec_out_str.size());
     REQUIRE(exp_out_str == dec_out_str);
@@ -92,16 +81,27 @@ TEST_CASE("test_lzw_dict_encode", "lzw")
 
 
 
-TEST_CASE("test_fake_decode", "lzw")
+TEST_CASE("test_lzw_dict_decode", "lzw")
 {
     LZWDict lzw;
 
-    std::vector<uint32_t> test_data = {98, 97, 256, 257, 97, 260};
-    std::stringstream out = lzw.decode(test_data);
+    std::vector<uint16_t> inp_data = {98, 97, 256, 257, 97, 260};
+    std::stringstream input;
 
-    std::string str_out = out.str();
-    std::vector<uint16_t> out_vec = stream_to_vec<uint16_t>(out);
+    // Header 
+    uint32_t t = 0;
+    for(unsigned i = 0; i < 3; ++i)
+        input.write(reinterpret_cast<const char*>(&t), sizeof(uint32_t));
 
-    for(unsigned i = 0; i < out_vec.size(); ++i)
-        std::cout << "[" << i << "] : " << out_vec[i] << std::endl;
+    // Stream
+    for(unsigned i = 0; i < inp_data.size(); ++i)
+        input.write(reinterpret_cast<const char*>(&inp_data[i]), sizeof(uint16_t));
+
+    auto dec_out = lzw.decode(input);
+
+    std::string exp_out_str = "babaabaaa";
+    std::string dec_out_str = dec_out.str();
+
+    REQUIRE(exp_out_str.size() == dec_out_str.size());
+    REQUIRE(exp_out_str == dec_out_str);
 }

@@ -13,8 +13,6 @@
 #include <vector>
 
 
-#include "Stream.hpp"
-
 
 
 const constexpr uint32_t LZW_ALPHA_SIZE = 256;
@@ -56,12 +54,12 @@ class LZWDict
         LZWDict();
         void init(void);
         void clear_dict(void);
+        bool contains(const std::string_view data) const;
+        std::vector<uint16_t> get_code(const std::string_view word) const; // <- debug only, remove
 
         std::stringstream encode(std::stringstream& input);
+        std::stringstream decode(std::stringstream& input) const;
 
-        std::vector<uint16_t> get_code(const std::string_view word) const;       // <- debug only, remove
-        std::stringstream decode(const std::vector<uint32_t>& data) const;
-        bool contains(const std::string_view data) const;
 
         // TODO: debug, remove 
         std::vector<std::vector<uint32_t>> find_all(void) const;
