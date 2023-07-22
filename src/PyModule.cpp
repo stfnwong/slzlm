@@ -15,6 +15,14 @@
 namespace py = pybind11;
 
 
+// Wrappers 
+std::string py_lzw_encode(const std::string& input)
+{
+    return py::bytes(lzw_encode(input).str());
+}
+
+
+
 PYBIND11_MODULE(slz, m)
 {
     
@@ -37,5 +45,5 @@ PYBIND11_MODULE(slz, m)
         .def("search", &Trie::search);
 
     // Function encode 
-    m.def("lzw_encode", &lzw_encode);
+    m.def("lzw_encode", &py_lzw_encode);
 }
