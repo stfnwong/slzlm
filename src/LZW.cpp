@@ -198,12 +198,93 @@ std::stringstream lzw_decode(std::stringstream& input)
 }
 
 
+
+/*
+ * Return the prefix code for some sequence if it exists, otherwise 
+ * return an empty vector.
+ */
+// TODO: add this to encoder
+//std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
+//{
+//    std::vector<uint16_t> out;
+//    auto* node = this->root.get();
+//
+//    for(auto const c: word)
+//    {
+//        auto& children = node->children;
+//        auto it = children.find(lzw_symbol_t(c));
+//        if(it == children.end())
+//        {
+//            out.push_back(node->value);
+//            node = this->root->children.find(c)->second.get();
+//        }
+//        else
+//            node = it->second.get();
+//    }
+//
+//    if(node->leaf)
+//        out.push_back(node->value);
+//
+//    return out;
+//}
+
+
+//std::vector<std::vector<uint32_t>> LZWDict::find_all(void) const
+//{
+//    std::vector<std::vector<uint32_t>> out;
+//    std::vector<uint32_t> traversal;
+//
+//    using StackData = std::pair<LZWNode*, int>;
+//
+//    std::stack<StackData> s;
+//    LZWNode* node = this->root.get();
+//    s.push({node, 0});
+//
+//    int cur_level = 0;
+//    while(!s.empty())
+//    {
+//        auto stack_data = s.top();
+//        s.pop();
+//        LZWNode* cur_node = stack_data.first;
+//        int node_level = stack_data.second;
+//
+//        if(node_level < cur_level)
+//        {
+//            out.push_back(traversal);
+//            traversal.clear();
+//        }
+//
+//        if(cur_level > 0)
+//            traversal.push_back(cur_node->value);
+//
+//        auto& children = cur_node->children;
+//        for(auto it = children.begin(); it != children.end(); ++it)
+//            s.push({it->second.get(), cur_level+1});
+//        cur_level++;
+//    }
+//    
+//
+//    return out;
+//}
+
+
+/*
+ * Encoder
+ * Object oriented encoder using LZW algorithm. The idea is that you can encode 
+ * data larger than "memory" by breaking it into chunks and calling encode() in a loop.
+ */
+
+LZWEncoder::LZWEncoder() : cur_key(0), root(std::make_unique<LZWNode>())
+{
+    this->init();
+}
+
 /*
  * LZW Objects
  */
 
-// LZWDict private methods
-LZWDict::LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
+// LZWEncoder private methods
+LZWEncoder::LZWNode* LZWEncoder::insert(const lzw_symbol_t c, LZWNode* node)
 {
     auto& children = node->children;
     auto it = children.find(c);
@@ -217,8 +298,7 @@ LZWDict::LZWNode* LZWDict::insert(const lzw_symbol_t c, LZWNode* node)
     return node;
 }
 
-
-LZWDict::LZWNode* LZWDict::search_node(const lzw_symbol_t c, LZWNode* node) const
+LZWEncoder::LZWNode* LZWEncoder::search_node(const lzw_symbol_t c, LZWNode* node) const
 {
     auto& children = node->children;
     auto it = children.find(c);
@@ -231,52 +311,35 @@ LZWDict::LZWNode* LZWDict::search_node(const lzw_symbol_t c, LZWNode* node) cons
 }
 
 
-// Ctor
-LZWDict::LZWDict() : cur_key(0), root(std::make_unique<LZWNode>())
+void LZWEncoder::clear_dict(void)
 {
-    this->init();
+    this->root->children.clear();
 }
 
-void LZWDict::init(void)
+/*
+ * Encoder public methods
+ */
+
+/*
+ * init()
+ * Reset the state of the encoder
+ */
+void LZWEncoder::init(void)
 {
+    this->out.clear();
+    this->out.str("");
+    this->clear_dict();
+
     for(uint32_t code = 0; code < LZW_ALPHA_SIZE; ++code)
         this->insert(lzw_symbol_t(code), this->root.get());
 }
-
-void LZWDict::clear_dict(void)
-{
-    // Dfs through tree and clear from leaf to root;
-    std::stack<LZWNode*> s;
-
-    LZWNode* node = this->root.get();
-    s.push(node);
-
-    while(!s.empty())
-    {
-        LZWNode* cur_node = s.top();
-        s.pop();
-
-        auto& children = cur_node->children;
-        if(children.size() > 0)
-        {
-            for(auto it = children.begin(); it != children.end(); ++it)
-            {
-                if(it->second->children.size() > 0)
-                    s.push(it->second.get());
-                else
-                    it->second->children.clear();
-            }
-        }
-    }
-}
-    
 
 
 /*
  * contains()
  * Returns true if there is a prefix that matches the sequence in data
  */
-bool LZWDict::contains(const std::string_view data) const
+bool LZWEncoder::contains(const std::string_view data) const
 {
     auto* node = this->root.get();
 
@@ -295,40 +358,9 @@ bool LZWDict::contains(const std::string_view data) const
 
 
 /*
- * Return the prefix code for some sequence if it exists, otherwise 
- * return an empty vector.
- */
-std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
-{
-    std::vector<uint16_t> out;
-    auto* node = this->root.get();
-
-    for(auto const c: word)
-    {
-        auto& children = node->children;
-        auto it = children.find(lzw_symbol_t(c));
-        if(it == children.end())
-        {
-            out.push_back(node->value);
-            node = this->root->children.find(c)->second.get();
-        }
-        else
-            node = it->second.get();
-    }
-
-    if(node->leaf)
-        out.push_back(node->value);
-
-    return out;
-}
-
-
-
-
-/*
  * Encode a stream into an LZW stream
  */
-std::stringstream LZWDict::encode(std::stringstream& input)
+std::stringstream LZWEncoder::encode(std::stringstream& input)
 {
     std::stringstream out; // this can become a member, the idea being we can keep calling encode on long strings (longer than "memory")
     unsigned bytes_per_code = 2;
@@ -386,8 +418,34 @@ std::stringstream LZWDict::encode(std::stringstream& input)
 }
 
 
-// TODO: don't use this - its just for testing the algorithm
-std::stringstream LZWDict::decode(std::stringstream& input) const
+
+
+/*
+ * LZWDecoder
+ * Object oriented decoder using LZW algorithm. The idea is that you can decode 
+ * data larger than "memory" by breaking it into chunks and calling decode() in a loop.
+ */
+LZWDecoder::LZWDecoder() : table(LZW_ALPHA_SIZE), offset24(0), offset32(0), num_codes(0), read_header(false)
+{
+    this->init();
+}
+
+
+void LZWDecoder::init(void)
+{
+    //this->table.reserve(LZW_ALPHA_SIZE);
+    //if(this->table.size() > 0)
+    //    this->table.clear();
+
+    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+        this->table[i] += i;
+}
+
+/*
+ * decode()
+ * Run decode on some chunk of the stream, updating the output and table.
+ */
+std::stringstream LZWDecoder::decode(std::stringstream& input) 
 {
     std::stringstream out;
 
@@ -404,10 +462,6 @@ std::stringstream LZWDict::decode(std::stringstream& input) const
             header_buf[0];
     }
 
-    // Init table 
-    std::vector<std::string> table(LZW_ALPHA_SIZE);
-    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-        table[i] += i;
 
     // Decode loop
     std::string s;
@@ -464,53 +518,9 @@ std::stringstream LZWDict::decode(std::stringstream& input) const
         new_sym += table[old_code];
         new_sym += cc;
 
-        table.push_back(new_sym);
+        this->table.push_back(new_sym);
         old_code = new_code;
     }
 
     return out;         // shut linter up
 }
-
-
-
-// DEBUG FUNCTIONS 
-
-std::vector<std::vector<uint32_t>> LZWDict::find_all(void) const
-{
-    std::vector<std::vector<uint32_t>> out;
-    std::vector<uint32_t> traversal;
-
-    using StackData = std::pair<LZWNode*, int>;
-
-    std::stack<StackData> s;
-    LZWNode* node = this->root.get();
-    s.push({node, 0});
-
-    int cur_level = 0;
-    while(!s.empty())
-    {
-        auto stack_data = s.top();
-        s.pop();
-        LZWNode* cur_node = stack_data.first;
-        int node_level = stack_data.second;
-
-        if(node_level < cur_level)
-        {
-            out.push_back(traversal);
-            traversal.clear();
-        }
-
-        if(cur_level > 0)
-            traversal.push_back(cur_node->value);
-
-        auto& children = cur_node->children;
-        for(auto it = children.begin(); it != children.end(); ++it)
-            s.push({it->second.get(), cur_level+1});
-        cur_level++;
-    }
-    
-
-    return out;
-}
-
-

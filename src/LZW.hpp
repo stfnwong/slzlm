@@ -27,11 +27,13 @@ std::stringstream lzw_decode(std::stringstream& data);
 
 
 /*
- * This will turn into an object-oriented encoder
+ * Encoder
+ * Object oriented encoder using LZW algorithm. The idea is that you can encode 
+ * data larger than "memory" by breaking it into chunks and calling encode() in a loop.
  */
-class LZWDict
+class LZWEncoder
 {
-    // Prefix tree node
+    // Prefix tree 
     struct LZWNode
     {
         uint32_t value;
@@ -42,30 +44,53 @@ class LZWDict
             LZWNode() : value(0), leaf(false), children() {} 
             LZWNode(uint32_t v, bool l) : value(v), leaf(l), children() {} 
     };
-
     uint32_t cur_key;
     std::unique_ptr<LZWNode> root;
 
+    // Encoded stream
+    std::stringstream out;
+
     LZWNode* insert(const lzw_symbol_t c, LZWNode* node);
     LZWNode* search_node(const lzw_symbol_t c, LZWNode* node) const;
-
+    void clear_dict(void);
 
     public:
-        LZWDict();
+        LZWEncoder();
         void init(void);
-        void clear_dict(void);
         bool contains(const std::string_view data) const;
-        std::vector<uint16_t> get_code(const std::string_view word) const; // <- debug only, remove
-
+        // TODO: re-write to return void, add write() method
         std::stringstream encode(std::stringstream& input);
-        std::stringstream decode(std::stringstream& input) const;
-
-
-        // TODO: debug, remove 
-        std::vector<std::vector<uint32_t>> find_all(void) const;
+        //std::vector<uint16_t> get_code(const std::string_view word) const; // <- debug only, remove
 };
 
 
+
+/*
+ * LZWDecoder
+ * Object oriented decoder using LZW algorithm. The idea is that you can decode 
+ * data larger than "memory" by breaking it into chunks and calling decode() in a loop.
+ */
+class LZWDecoder
+{
+    // Symbol table
+    std::vector<std::string> table;
+
+    uint32_t offset24;
+    uint32_t offset32;
+    uint32_t num_codes;
+    // We assume first chunk contains header. On the first chunk we read the header 
+    // information and set read_header true. If true then when we call decode() the first 12 
+    // bytes are assumed to be part of the data stream.
+    bool read_header;       
+
+    std::stringstream out;
+
+
+    public:
+        LZWDecoder();
+        void init(void);
+        std::stringstream decode(std::stringstream& input);
+};
 
 
 

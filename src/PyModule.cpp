@@ -30,12 +30,18 @@ std::string py_lzw_decode(const std::string& input)
 
 PYBIND11_MODULE(slz, m)
 {
-    // LZW object 
-    py::class_ <LZWDict>(m, "LZWDict")
+    // Object oriented encoder
+    py::class_ <LZWEncoder>(m, "LZWEncoder")
         .def(py::init<>())
-        .def("encode", &LZWDict::encode)
-        .def("get_code", &LZWDict::get_code)
-        .def("contains", &LZWDict::contains);
+        .def("init", &LZWEncoder::init)
+        .def("contains", &LZWEncoder::contains)
+        .def("encode", &LZWEncoder::encode);
+
+    // Object oriented decoder
+    py::class_ <LZWDecoder>(m, "LZWDecoder")
+        .def(py::init<>())
+        .def("init", &LZWDecoder::init)
+        .def("decode", &LZWDecoder::decode);
 
     // Prefix tree
     py::class_ <Trie>(m, "Trie")
@@ -45,5 +51,6 @@ PYBIND11_MODULE(slz, m)
 
     // Function encode 
     m.def("lzw_encode", &py_lzw_encode);
+    // Function decode 
     m.def("lzw_decode", &py_lzw_decode);
 }
