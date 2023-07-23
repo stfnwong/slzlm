@@ -59,30 +59,41 @@ TEST_CASE("test_function_decode", "lzw")
 
 
 
-TEST_CASE("test_lzw_dict_encode", "lzw")
+TEST_CASE("test_lzw_encoder_encode", "lzw")
 {
     LZWEncoder lzw;
+    unsigned header_size = 12;
 
-    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
-    std::stringstream ss;
-    ss << test_input;
-
-    auto enc = lzw.encode(ss);
-
-    enc.seekg(3 * sizeof(uint32_t), std::ios::beg);     // skip header
-    std::vector<uint16_t> out_data = stream_to_vec<uint16_t>(enc);
     std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
+    std::string test_input = "babaabaaa"; // exp sequence: 98, 97, 256, 257, 97, 260
 
-    REQUIRE(out_data.size() == exp_data.size());
-    for(unsigned i = 0; i < out_data.size(); ++i)
-        REQUIRE(out_data[i] == exp_data[i]);
+    lzw.encode(test_input);
+    auto out_data = lzw.get();
+
+    // We need to format this into a new vector since the std::string doesn't know about
+    // the alignment of the stream.
+    std::vector<uint16_t> out_data_vec;
+    char buf[2];
+    for(unsigned i = header_size; i < out_data.size(); ++i)
+    {
+        buf[i % 2] = out_data[i];
+        if(i % 2)
+            out_data_vec.push_back(buf[1] << 8 | buf[0]);
+    }
+
+
+    // Note that first 12 bytes of this are header information
+
+    REQUIRE(out_data_vec.size() == exp_data.size());
+    for(unsigned i = 0; i < out_data_vec.size(); ++i)
+        REQUIRE(out_data_vec[i] == exp_data[i]);
 }
 
 // TODO: test encode in loop
 
 
 
-TEST_CASE("test_lzw_dict_decode", "lzw")
+TEST_CASE("test_lzw_decoder_decode", "lzw")
 {
     LZWDecoder lzw;
 
@@ -98,10 +109,10 @@ TEST_CASE("test_lzw_dict_decode", "lzw")
     for(unsigned i = 0; i < inp_data.size(); ++i)
         input.write(reinterpret_cast<const char*>(&inp_data[i]), sizeof(uint16_t));
 
-    auto dec_out = lzw.decode(input);
+    lzw.decode(input);
+    auto dec_out_str = lzw.get();
 
     std::string exp_out_str = "babaabaaa";
-    std::string dec_out_str = dec_out.str();
 
     REQUIRE(exp_out_str.size() == dec_out_str.size());
     REQUIRE(exp_out_str == dec_out_str);

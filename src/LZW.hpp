@@ -47,6 +47,13 @@ class LZWEncoder
     uint32_t cur_key;
     std::unique_ptr<LZWNode> root;
 
+    // Header information
+    uint32_t offset24;
+    uint32_t offset32;
+    uint32_t num_codes;
+    int bytes_per_code;
+    bool insert_header;
+
     // Encoded stream
     std::stringstream out;
 
@@ -59,7 +66,8 @@ class LZWEncoder
         void init(void);
         bool contains(const std::string_view data) const;
         // TODO: re-write to return void, add write() method
-        std::stringstream encode(std::stringstream& input);
+        void encode(const std::string_view input);
+        std::string get(void);
         //std::vector<uint16_t> get_code(const std::string_view word) const; // <- debug only, remove
 };
 
@@ -78,6 +86,7 @@ class LZWDecoder
     uint32_t offset24;
     uint32_t offset32;
     uint32_t num_codes;
+    int bytes_per_code;
     // We assume first chunk contains header. On the first chunk we read the header 
     // information and set read_header true. If true then when we call decode() the first 12 
     // bytes are assumed to be part of the data stream.
@@ -85,11 +94,11 @@ class LZWDecoder
 
     std::stringstream out;
 
-
     public:
         LZWDecoder();
         void init(void);
-        std::stringstream decode(std::stringstream& input);
+        void decode(std::stringstream& input);
+        std::string get(void);
 };
 
 
