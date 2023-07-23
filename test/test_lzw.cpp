@@ -90,7 +90,10 @@ TEST_CASE("test_lzw_encoder_encode", "lzw")
 }
 
 // TODO: test encode in loop
-
+//TEST_CASE("test_lzw_encoder_large", "lzw")
+//{
+//    std::string test_filename = "test/shakespear.txt";
+//}
 
 
 TEST_CASE("test_lzw_decoder_decode", "lzw")
