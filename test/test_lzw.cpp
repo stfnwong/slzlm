@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <iterator>
 
 #include "LZW.hpp"
 #include "Util.hpp"     // for the stream -> vec function
@@ -26,6 +27,44 @@ TEST_CASE("test_function_encode", "lzw")
     for(unsigned i = 0; i < stream_vec.size(); ++i)
         REQUIRE(exp_data[i] == stream_vec[i]);
 }
+
+TEST_CASE("test_function_encode_large", "lzw")
+{
+    std::cout << "TIME TO ENCODE THE BARD" << std::endl;
+    std::string test_filename = "test/shakespear.txt";
+    std::ifstream file(test_filename);
+    std::string text(std::istreambuf_iterator<char>{file}, {});
+    file.close();
+    std::cout << "read " << text.size() << " characters from [" << test_filename << "]" << std::endl;
+
+    std::stringstream enc_out = lzw_encode(text);
+    std::cout << enc_out.str() << std::endl;
+    std::cout << "enc_out.str().size(): " << enc_out.str().size() << std::endl;
+
+
+}
+
+TEST_CASE("test_segfault", "lzw")
+{
+    std::cout << "TIME TO ENCODE THE BARD" << std::endl;
+    std::string test_filename = "test/shakespear.txt";
+    std::ifstream file(test_filename);
+    std::string text(std::istreambuf_iterator<char>{file}, {});
+    file.close();
+    std::cout << "read " << text.size() << " characters from [" << test_filename << "]" << std::endl;
+
+    // Get a substring of just problem characters 
+    std::string bad_string = text.substr(900, 2048);
+
+    std::stringstream enc_out = lzw_encode(bad_string);
+
+    std::cout << enc_out.str() << std::endl;
+    std::cout << "enc_out.str().size(): " << enc_out.str().size() << std::endl;
+
+
+}
+
+
 
 
 TEST_CASE("test_function_decode", "lzw")
@@ -90,10 +129,17 @@ TEST_CASE("test_lzw_encoder_encode", "lzw")
 }
 
 // TODO: test encode in loop
-//TEST_CASE("test_lzw_encoder_large", "lzw")
-//{
-//    std::string test_filename = "test/shakespear.txt";
-//}
+TEST_CASE("test_lzw_encoder_large", "lzw")
+{
+    std::string test_filename = "test/shakespear.txt";
+    std::ifstream file(test_filename);
+    std::string text;
+
+
+    file >> text;
+    file.close();
+
+}
 
 
 TEST_CASE("test_lzw_decoder_decode", "lzw")

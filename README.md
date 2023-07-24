@@ -27,9 +27,9 @@ This is a description of the header formats used by the various compressors.
 
 
 ## C++ Requirements 
-- C++17
-- GNU Make
-- Catch2 for tests
+- C++17 (I am using `std::string_view` so need support for that).
+- GNU Make.
+- Catch2 for tests (header is in this repo).
 
 Build everything by invoking `make all`. Test binaries end up in `bin/`. There is a 
 script `test/run_tests.sh` that globs every file in `bin/` that starts with `test.*` 

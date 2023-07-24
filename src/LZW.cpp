@@ -59,11 +59,13 @@ std::stringstream lzw_encode(const std::string_view data)
     for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
         node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
 
-    for(const auto& c: data)
+    unsigned count = 0;
+    for(const auto& c: data)  // is there a problem here when c == 200?
     {
+        count++;
         auto& children = node->children;
         // see if we have c already
-        auto it = children.find(c);
+        auto it = children.find(lzw_symbol_t(c));
 
         if(it == children.end())
         {

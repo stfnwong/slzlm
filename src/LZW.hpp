@@ -16,7 +16,7 @@
 
 
 const constexpr uint32_t LZW_ALPHA_SIZE = 256;
-using lzw_symbol_t = uint16_t;
+using lzw_symbol_t = int32_t;
 
 
 // TODO: re-write as functions

@@ -16,3 +16,6 @@ __pycache__
 
 # Ignore shared object files
 *.so
+
+# Ignore notebook checkpoints 
+.ipynb_checkpoints/
