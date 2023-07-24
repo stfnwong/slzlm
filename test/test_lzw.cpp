@@ -28,21 +28,6 @@ TEST_CASE("test_function_encode", "lzw")
         REQUIRE(exp_data[i] == stream_vec[i]);
 }
 
-TEST_CASE("test_function_encode_large", "lzw")
-{
-    std::cout << "TIME TO ENCODE THE BARD" << std::endl;
-    std::string test_filename = "test/shakespear.txt";
-    std::ifstream file(test_filename);
-    std::string text(std::istreambuf_iterator<char>{file}, {});
-    file.close();
-    std::cout << "read " << text.size() << " characters from [" << test_filename << "]" << std::endl;
-
-    std::stringstream enc_out = lzw_encode(text);
-    std::cout << enc_out.str() << std::endl;
-    std::cout << "enc_out.str().size(): " << enc_out.str().size() << std::endl;
-
-
-}
 
 TEST_CASE("test_segfault", "lzw")
 {
@@ -53,14 +38,13 @@ TEST_CASE("test_segfault", "lzw")
     file.close();
     std::cout << "read " << text.size() << " characters from [" << test_filename << "]" << std::endl;
 
-    // Get a substring of just problem characters 
-    std::string bad_string = text.substr(900, 2048);
 
-    std::stringstream enc_out = lzw_encode(bad_string);
+    std::stringstream enc_out = lzw_encode(text);
 
     std::cout << enc_out.str() << std::endl;
     std::cout << "enc_out.str().size(): " << enc_out.str().size() << std::endl;
 
+    REQUIRE(enc_out.str().size() < text.size());
 
 }
 

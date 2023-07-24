@@ -103,6 +103,82 @@ std::stringstream lzw_encode(const std::string_view data)
 }
 
 
+
+
+// Can this work if we only take one byte at a time?
+std::stringstream lzw_encode_from_stream(std::stringstream& data)
+{
+    std::stringstream out;
+    int bytes_per_code = 2;    // minimum code size is 16-bits
+    int offset24 = 0;
+    int offset32 = 0;
+    int num_codes = 0;
+    uint32_t cur_key = 0;
+
+    // Write offset data to start of stream
+    out.seekp(0);
+    // write dummy values for later 
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
+
+    std::unique_ptr<Node> prefix_tree = std::make_unique<Node>();
+
+    // Init the dict 
+    auto* node = prefix_tree.get();
+    for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
+        node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
+
+    char c;
+    while(data)
+    {
+        if(!data.get(c))
+            break;
+        if(data.eof() || data.fail())
+            break;
+
+        auto& children = node->children;
+
+        // see if we have c already
+        auto it = children.find(lzw_symbol_t(c));
+
+        if(it == children.end())
+        {
+            // write this code to output
+            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+            children.emplace(lzw_symbol_t(c), std::make_unique<Node>(cur_key, true));
+            // p = c
+            node = prefix_tree->children.find(lzw_symbol_t(c))->second.get();
+            cur_key++;
+
+            if(cur_key == 0xFFFF)
+            {
+                bytes_per_code = 3;
+                offset24 = out.tellp();
+            }
+            if(cur_key == 0xFFFFFF)
+            {
+                bytes_per_code = 4;
+                offset32 = out.tellp();
+            }
+        }
+        else
+            node = it->second.get();
+    }
+    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+
+    // go back and write the offsets
+    out.seekp(0, std::ios::beg);
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
+
+    return out;
+}
+
+
+
+
 /*
  * Decode LZW stream
  */

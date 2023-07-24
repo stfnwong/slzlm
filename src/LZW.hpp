@@ -15,8 +15,8 @@
 
 
 
-const constexpr uint32_t LZW_ALPHA_SIZE = 256;
-using lzw_symbol_t = int32_t;
+using lzw_symbol_t = uint8_t;
+const constexpr uint32_t LZW_ALPHA_SIZE = 1 << (8 * sizeof(lzw_symbol_t));
 
 
 // TODO: re-write as functions
@@ -25,6 +25,7 @@ using lzw_symbol_t = int32_t;
 std::stringstream lzw_encode(const std::string_view data);
 std::stringstream lzw_decode(std::stringstream& data);
 
+std::stringstream lzw_encode_from_stream(std::stringstream& data);
 
 /*
  * Encoder
