@@ -59,6 +59,8 @@ std::stringstream lzw_encode(const std::string_view data)
     for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
         node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
 
+    // c ends up being const char*, so lzw_symbol_t needs to have same size 
+    // sizeof(const char) == sizeof(lzw_symbol_t)
     for(const auto& c: data)
     {
         auto& children = node->children;
@@ -70,9 +72,7 @@ std::stringstream lzw_encode(const std::string_view data)
             // write this code to output
             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             // insert 
-            it = node->children.find(c);
-            if(it == children.end())
-                it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
+            children.emplace(c, std::make_unique<Node>(cur_key, true));
             node = prefix_tree->children.find(c)->second.get();
             cur_key++;
 
