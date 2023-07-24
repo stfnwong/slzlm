@@ -56,7 +56,7 @@ TEST_CASE("test_function_decode", "lzw")
 TEST_CASE("test_segfault", "lzw")
 {
     std::cout << "TIME TO ENCODE THE BARD" << std::endl;
-    std::string test_filename = "shakespear.txt";
+    std::string test_filename = "test/shakespear.txt";
     std::ifstream file(test_filename);
     std::string text(std::istreambuf_iterator<char>{file}, {});
     file.close();
