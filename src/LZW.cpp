@@ -498,6 +498,30 @@ std::string LZWEncoder::get(void)
     return this->out.str();     // TODO: this is wrong due to string formatting
 }
 
+
+/*
+ * get_stream()
+ * Return a new stream with the contents of the current internal stream
+ */
+std::stringstream LZWEncoder::get_stream(void)
+{
+    std::stringstream ss;
+    ///this->out.seekp(0, std::ios::beg);
+    ss << this->out.rdbuf();
+    return ss;
+}
+
+
+/*
+ * to_file()
+ */
+void LZWEncoder::to_file(const std::string& filename)
+{
+    std::ofstream file(filename, std::ios::binary);
+    file << this->out.rdbuf();
+    file.close();
+}
+
 /*
  * Counts number of nodes in prefix tree
  */
@@ -654,6 +678,17 @@ void LZWDecoder::decode(std::stringstream& input)
 std::string LZWDecoder::get(void)
 {
     return this->out.str();
+}
+
+
+/*
+ * to_file()
+ */
+void LZWDecoder::to_file(const std::string& filename)
+{
+    std::ofstream file(filename, std::ios::binary);
+    file << this->out.rdbuf();
+    file.close();
 }
 
 

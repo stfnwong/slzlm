@@ -70,6 +70,8 @@ class LZWEncoder
         // TODO: re-write to return void, add write() method
         void encode(const std::string_view input);
         std::string get(void);
+        std::stringstream get_stream(void);
+        void to_file(const std::string& filename);
         unsigned size(void) const;
         //std::vector<uint16_t> get_code(const std::string_view word) const; // <- debug only, remove
 };
@@ -102,6 +104,7 @@ class LZWDecoder
         void init(void);
         void decode(std::stringstream& input);
         std::string get(void);
+        void to_file(const std::string& filename);
         unsigned size(void) const;
 };
 

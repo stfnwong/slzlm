@@ -20,5 +20,8 @@ __pycache__
 # Ignore notebook checkpoints 
 .ipynb_checkpoints/
 
+# Ignore any compressed outputs 
+*.lz
+
 # Ignore callgrind output
 callgrind*

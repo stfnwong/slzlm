@@ -27,6 +27,8 @@ std::string py_lzw_decode(const std::string& input)
 }
 
 
+// TODO: .doc() for each of these, syntax is 
+// .doc() = some_const_string
 
 PYBIND11_MODULE(slz, m)
 {

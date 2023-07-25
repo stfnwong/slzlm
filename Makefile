@@ -66,7 +66,7 @@ $(TESTS): $(TEST_OBJECTS) $(OBJECTS)
 
 
 # ==== PROGRAM TARGETS ==== #
-PROGRAMS = trie
+PROGRAMS = trie encode
 PROGRAM_OBJECTS := $(PROGRAM_SOURCES:$(PROGRAM_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 $(PROGRAM_OBJECTS): $(OBJ_DIR)/%.o : $(PROGRAM_DIR)/%.cpp
@@ -74,7 +74,7 @@ $(PROGRAM_OBJECTS): $(OBJ_DIR)/%.o : $(PROGRAM_DIR)/%.cpp
 
 $(PROGRAMS): $(OBJECTS) $(PROGRAM_OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(OBJ_DIR)/$@.o \
-		$(INCS) -o $@ $(LIBS)
+		$(INCS) -o $(BIN_DIR)/$@ $(LIBS)
 
 
 
