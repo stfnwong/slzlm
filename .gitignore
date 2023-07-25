@@ -19,3 +19,6 @@ __pycache__
 
 # Ignore notebook checkpoints 
 .ipynb_checkpoints/
+
+# Ignore callgrind output
+callgrind*

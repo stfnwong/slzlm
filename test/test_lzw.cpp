@@ -13,6 +13,24 @@
 #include "Util.hpp"     // for the stream -> vec function
 
 
+std::stringstream generate_exp_stream_data(void)
+{
+    std::vector<uint16_t> inp_data = {98, 97, 256, 257, 97, 260};
+    std::stringstream ss;
+
+    // Header 
+    uint32_t t = 0;
+    for(unsigned i = 0; i < 3; ++i)
+        ss.write(reinterpret_cast<const char*>(&t), sizeof(uint32_t));
+
+    // Stream
+    for(unsigned i = 0; i < inp_data.size(); ++i)
+        ss.write(reinterpret_cast<const char*>(&inp_data[i]), sizeof(uint16_t));
+
+    return ss;
+}
+
+// ===== Functional encoder ===== //
 
 TEST_CASE("test_function_encode", "lzw")
 {
@@ -29,27 +47,26 @@ TEST_CASE("test_function_encode", "lzw")
 }
 
 
-TEST_CASE("test_segfault", "lzw")
+TEST_CASE("test_encode_long_string", "lzw")
 {
-    std::cout << "TIME TO ENCODE THE BARD" << std::endl;
     std::string test_filename = "test/shakespear.txt";
     std::ifstream file(test_filename);
     std::string text(std::istreambuf_iterator<char>{file}, {});
     file.close();
-    std::cout << "read " << text.size() << " characters from [" << test_filename << "]" << std::endl;
-
 
     std::stringstream enc_out = lzw_encode(text);
 
-    std::cout << enc_out.str() << std::endl;
-    std::cout << "enc_out.str().size(): " << enc_out.str().size() << std::endl;
-
     REQUIRE(enc_out.str().size() < text.size());
-
+    //std::cout << "enc_out: " << enc_out.str() << std::endl << std::endl;
+    std::cout << "text length    : " <<  text.size() << " characters" << std::endl;
+    std::cout << "encoded length : " << enc_out.str().size() << " characters" << std::endl;
+    float r = float(enc_out.str().size()) / float(text.size());
+    std::cout << "Ratio : " << r << std::endl;
 }
 
 
 
+// ===== Functional decoder ===== //
 
 TEST_CASE("test_function_decode", "lzw")
 {
@@ -75,10 +92,24 @@ TEST_CASE("test_function_decode", "lzw")
 }
 
 
-//TEST_CASE("test_clear_dict", "lzw")
-//{
-//    LZWDict lzw;
-//}
+// ===== Object oriented encoder ===== //
+
+TEST_CASE("test_lzw_encoder_count", "lzw")
+{
+    LZWEncoder lzw;
+
+    // We insert LZW_ALPHA_SIZE nodes by default 
+    REQUIRE(lzw.size() == LZW_ALPHA_SIZE);
+    std::string test_input = "babaabaaa"; 
+
+    // If we encode the test string we should generate 5 extra symbols
+    lzw.encode(test_input);
+    REQUIRE(lzw.size() == LZW_ALPHA_SIZE + 5);
+
+    // Calling clear() should reset the code size
+    lzw.init();
+    REQUIRE(lzw.size() == LZW_ALPHA_SIZE);
+}
 
 
 
@@ -104,7 +135,6 @@ TEST_CASE("test_lzw_encoder_encode", "lzw")
             out_data_vec.push_back(buf[1] << 8 | buf[0]);
     }
 
-
     // Note that first 12 bytes of this are header information
 
     REQUIRE(out_data_vec.size() == exp_data.size());
@@ -112,16 +142,63 @@ TEST_CASE("test_lzw_encoder_encode", "lzw")
         REQUIRE(out_data_vec[i] == exp_data[i]);
 }
 
-// TODO: test encode in loop
-TEST_CASE("test_lzw_encoder_large", "lzw")
+
+TEST_CASE("test_lzw_encoder_loop", "lzw")
 {
     std::string test_filename = "test/shakespear.txt";
     std::ifstream file(test_filename);
-    std::string text;
-
-
-    file >> text;
+    std::string text(std::istreambuf_iterator<char>{file}, {});
     file.close();
+
+    LZWEncoder lzw;
+
+    unsigned chunk_size = 64;
+    unsigned num_chunks = 8;
+
+    for(unsigned c = 0; c < num_chunks-1; ++c)
+    {
+        std::string chunk = text.substr(c * chunk_size, (c+1) * chunk_size-1);
+        std::cout << "chunk [" << c+1 << "/" <<  num_chunks << "]: (" << chunk.size() << " characters)" << std::endl;
+        lzw.encode(chunk);
+    }
+
+    auto out_data = lzw.get();
+    //REQUIRE(out_data.size() < chunk_size * num_chunks);
+
+    std::string text_substr = text.substr(0, num_chunks * chunk_size);
+    std::cout << std::endl << "Complete text substring: [" << text_substr << "]" << std::endl;
+    std::cout << "Text substring contains " << text_substr.size() << " characters" << std::endl;
+    
+    LZWEncoder ref_enc;
+    ref_enc.encode(text_substr);
+    auto exp_out_data = ref_enc.get();
+    //auto exp_out_data = lzw_encode(text_substr);
+
+    std::cout << std::endl << "out_data ; " << out_data << std::endl;
+    std::cout << std::endl << "ref_data ; " << exp_out_data << std::endl;
+
+    REQUIRE(out_data.size() == exp_out_data.size());
+    //REQUIRE(out_data.size() == exp_out_data.str().size());
+}
+
+
+
+// ===== Object oriented encoder ===== //
+
+TEST_CASE("test_lzw_decoder_count", "lzw")
+{
+    LZWDecoder lzw;
+    // Get some encoded data 
+    std::stringstream input = generate_exp_stream_data();
+
+    REQUIRE(lzw.size() == LZW_ALPHA_SIZE);
+
+    // As we decode we expect more symbols
+    lzw.decode(input);
+    REQUIRE(lzw.size() == LZW_ALPHA_SIZE+5);
+
+    lzw.init();
+    REQUIRE(lzw.size() == LZW_ALPHA_SIZE);
 
 }
 
@@ -130,18 +207,7 @@ TEST_CASE("test_lzw_decoder_decode", "lzw")
 {
     LZWDecoder lzw;
 
-    std::vector<uint16_t> inp_data = {98, 97, 256, 257, 97, 260};
-    std::stringstream input;
-
-    // Header 
-    uint32_t t = 0;
-    for(unsigned i = 0; i < 3; ++i)
-        input.write(reinterpret_cast<const char*>(&t), sizeof(uint32_t));
-
-    // Stream
-    for(unsigned i = 0; i < inp_data.size(); ++i)
-        input.write(reinterpret_cast<const char*>(&inp_data[i]), sizeof(uint16_t));
-
+    std::stringstream input = generate_exp_stream_data() ;
     lzw.decode(input);
     auto dec_out_str = lzw.get();
 

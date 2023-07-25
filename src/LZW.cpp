@@ -8,11 +8,6 @@
 #include <utility>
 #include <fstream>
 
-// TODO: debug only, remove these
-#include <iostream>
-#include <iomanip>
-
-
 #include "LZW.hpp"
 
 
@@ -454,18 +449,18 @@ void LZWEncoder::encode(const std::string_view input)
         this->out.write(reinterpret_cast<const char*>(&this->offset32), sizeof(uint32_t));
         this->out.write(reinterpret_cast<const char*>(&this->num_codes), sizeof(uint32_t));
         this->insert_header = false;
+        this->cur_node = this->root.get();
     }
 
-    auto* node = this->root.get();
 
     for(const auto& c : input)
     {
-        auto* result_node = this->search_node(lzw_symbol_t(c), node);
+        auto* result_node = this->search_node(lzw_symbol_t(c), this->cur_node);
         if(!result_node)
         {
-            this->out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-            this->insert(lzw_symbol_t(c), node);
-            node = this->root->children.find(c)->second.get();
+            this->out.write(reinterpret_cast<const char*>(&this->cur_node->value), bytes_per_code);
+            this->insert(lzw_symbol_t(c), this->cur_node);
+            this->cur_node = this->root->children.find(lzw_symbol_t(c))->second.get();
 
             if(this->cur_key == 0xFFFF)
             {
@@ -479,10 +474,10 @@ void LZWEncoder::encode(const std::string_view input)
             }
         }
         else
-            node = result_node;
+            this->cur_node = result_node;
     }
 
-    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+    out.write(reinterpret_cast<const char*>(&this->cur_node->value), bytes_per_code);
 }
 
 
@@ -500,7 +495,33 @@ std::string LZWEncoder::get(void)
     this->out.seekp(0, std::ios::end);
     this->out.seekg(0, std::ios::end);
 
-    return this->out.str();
+    return this->out.str();     // TODO: this is wrong due to string formatting
+}
+
+/*
+ * Counts number of nodes in prefix tree
+ */
+unsigned LZWEncoder::size(void) const
+{
+    std::stack<LZWNode*> s;
+    unsigned count = 0;
+
+    s.push(this->root.get());
+    while(!s.empty())
+    {
+        LZWNode* node = s.top();
+        s.pop();
+        count++;
+
+        if(node->children.size() > 0)
+        {
+            for(auto it = node->children.begin(); it != node->children.end(); ++it)
+                s.push(it->second.get());
+        }
+    }
+    count--;            // don't count the root node
+
+    return count;
 }
 
 
@@ -520,12 +541,13 @@ LZWDecoder::LZWDecoder() : table(LZW_ALPHA_SIZE), offset24(0), offset32(0),
 
 void LZWDecoder::init(void)
 {
-    //this->table.reserve(LZW_ALPHA_SIZE);
-    //if(this->table.size() > 0)
-    //    this->table.clear();
-
-    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-        this->table[i] += i;
+    if(this->table.size() > LZW_ALPHA_SIZE)
+        this->table.resize(LZW_ALPHA_SIZE);
+    else
+    {
+        for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+            this->table[i] += i;
+    }
     
     // reset stream info
     this->out.clear();
@@ -633,3 +655,10 @@ std::string LZWDecoder::get(void)
 {
     return this->out.str();
 }
+
+
+unsigned LZWDecoder::size(void) const
+{
+    return this->table.size();
+}
+
