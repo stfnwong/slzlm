@@ -104,6 +104,7 @@ class LZWDecoder
         void init(void);
         void decode(std::stringstream& input);
         std::string get(void);
+        std::stringstream get_stream(void);
         void to_file(const std::string& filename);
         unsigned size(void) const;
 };

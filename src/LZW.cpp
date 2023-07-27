@@ -680,6 +680,17 @@ std::string LZWDecoder::get(void)
     return this->out.str();
 }
 
+/*
+ * get_stream()
+ * Return a new stream with the contents of the current internal stream
+ */
+std::stringstream LZWDecoder::get_stream(void)
+{
+    std::stringstream ss;
+    ///this->out.seekp(0, std::ios::beg);
+    ss << this->out.rdbuf();
+    return ss;
+}
 
 /*
  * to_file()

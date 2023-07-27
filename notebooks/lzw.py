@@ -56,9 +56,12 @@
 # %autoreload 2
 
 # %%
-# TODO: hack - need to pip install package to avoid this?
-import os
-os.chdir("..")    # cant load slz as a module from the notebooks directory
+# TODO: hack - need to pip install package to avoid #this?
+import os, sys
+
+if ".." not in sys.path:
+    sys.path.insert(0, "..")
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # %%
 from slz import lzw_encode      # import the functional encoder
@@ -109,9 +112,9 @@ print(f"str: {dec_out}")
 # To avoid getting psy-op'd on copyright issues we use the collected works of Shakespear from Project Gutenberg.
 
 # %%
-input_filename = "test/shakespear.txt"
+input_filename = "../test/shakespear.txt"
 
-with open(input_filename, "r") as fp:
+with open(input_filename, "rb") as fp:
     text = fp.read()
     #text = "".join(fp.readlines())
 
@@ -124,9 +127,9 @@ print(len(substr))
 # We encode the string using `lzw_encode`.
 
 # %%
-
-#enc = lzw_encode(str(substr))
-enc = lzw_encode(substr.encode("utf-8"))
+print(type(substr))
+enc = lzw_encode(substr)
+#enc = lzw_encode(substr.encode("utf-8"))
 
 
 print(len(enc))

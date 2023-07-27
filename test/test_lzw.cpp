@@ -181,6 +181,17 @@ TEST_CASE("test_lzw_encoder_loop", "lzw")
     std::cout << std::endl << "out_data ; " << out_data.str() << std::endl;
     std::cout << std::endl << "exp_data ; " << exp_out_data.str() << std::endl;
 
+    // TODO: debug only, remove 
+    std::ofstream enc_file("test/bard_loop_encode.lz", std::ios::binary);
+    enc_file << out_data.rdbuf();
+    enc_file.close();
+
+    std::ofstream ref_file("test/bard_func_encode.lz", std::ios::binary);
+    ref_file << exp_out_data.rdbuf();
+    ref_file.close();
+
+
+    
     //REQUIRE(out_data.size() == exp_out_data.size());
     out_data.seekg(0, std::ios::end);
     size_t out_data_size = out_data.tellg();
@@ -255,4 +266,54 @@ TEST_CASE("test_lzw_decoder_decode", "lzw")
 }
 
 
-// TODO: test decode in loop
+TEST_CASE("test_lzw_decoder_loop", "lzw")
+{
+    // Get some text
+    unsigned chunk_size = 64;
+    unsigned num_chunks = 8;
+    unsigned text_length = chunk_size * num_chunks;
+
+    std::string test_filename = "test/shakespear.txt";
+    std::ifstream file(test_filename);
+
+    std::string text;
+    std::copy_n(
+            std::istreambuf_iterator<char>(file.rdbuf()), 
+            text_length, 
+            std::back_inserter(text)
+    );
+
+    file.close();
+
+    // Get an encoded version
+    auto enc_text = lzw_encode(text);
+
+    LZWDecoder lzw;
+    for(unsigned c = 0; c < num_chunks-1; ++c)
+    {
+        //std::string chunk = text.substr(c * chunk_size, chunk_size);
+        std::stringstream chunk(text.substr(c * chunk_size, chunk_size));
+
+        std::cout << "Chunk [" << c+1 << "/" << num_chunks << "] : [";
+        // DEBUG: show chunk contents
+        chunk.seekg(0, std::ios::beg);
+        while(chunk && !chunk.eof())
+        {
+            char c;
+            chunk.read(&c, sizeof(char));
+            std::cout << c;
+        }
+        std::cout << "]" << std::endl;
+        chunk.seekg(0, std::ios::beg);
+
+        lzw.decode(chunk);      // fucked
+    }
+
+    auto out_data = lzw.get_stream();
+    out_data.seekg(0, std::ios::end);
+    size_t out_size = out_data.tellg();
+    out_data.seekg(0, std::ios::beg);
+}
+
+
+

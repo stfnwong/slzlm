@@ -2,6 +2,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 // Stringstream test 
 #include <sstream>
@@ -37,13 +38,26 @@ PYBIND11_MODULE(slz, m)
         .def(py::init<>())
         .def("init", &LZWEncoder::init)
         .def("contains", &LZWEncoder::contains)
-        .def("encode", &LZWEncoder::encode);
+        .def("encode", &LZWEncoder::encode)
+        .def("get", [](LZWEncoder &self) -> py::bytes {
+                return py::bytes(self.get());
+        })          // via https://github.com/pybind/pybind11/issues/1811
+        .def("to_file", &LZWEncoder::to_file)
+        .def("size", &LZWEncoder::size);
 
     // Object oriented decoder
     py::class_ <LZWDecoder>(m, "LZWDecoder")
         .def(py::init<>())
         .def("init", &LZWDecoder::init)
-        .def("decode", &LZWDecoder::decode);
+        // TODO: this might not be possible...
+        .def("decode", [](LZWDecoder &self, const std::string& data) {
+                std::stringstream ss(data);
+                self.decode(ss);        // TODO: wtf is wrong with this?
+        })
+        .def("get", [](LZWDecoder &self) -> py::bytes {
+                return py::bytes(self.get());
+        })          // via https://github.com/pybind/pybind11/issues/1811
+        .def("size", &LZWDecoder::size);
 
     // Prefix tree
     py::class_ <Trie>(m, "Trie")
