@@ -67,9 +67,7 @@ std::stringstream lzw_encode(const std::string_view data)
             // write this code to output
             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             // insert 
-            it = node->children.find(c);
-            if(it == children.end())
-                it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
+            it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
             node = prefix_tree->children.find(c)->second.get();
             cur_key++;
 
