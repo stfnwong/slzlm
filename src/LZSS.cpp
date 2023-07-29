@@ -4,6 +4,7 @@
 
 
 #include <algorithm>
+#include <fstream>
 
 #include "LZSS.hpp"
 
@@ -135,6 +136,14 @@ void BitStream::init(void)
     this->ss.str("");
 }
 
+
+void BitStream::to_file(const std::string& filename)
+{
+    std::ofstream file(filename, std::ios::binary);
+    file << this->ss.rdbuf();
+    file.close();
+    this->ss.seekg(0, std::ios::beg);       // why does rdbuf advance the get pointer?
+}
 
 
 /*

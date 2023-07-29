@@ -38,6 +38,8 @@ using LZSSTree = std::array<LZSNode, WINDOW_SIZE+1>;
 using LZSSWindow = std::array<char, WINDOW_SIZE>;
 
 
+// Note this is almost certainly not portable
+// Once it works consider finding a serialization lib
 struct BitStream
 {
     uint8_t mask;
@@ -52,6 +54,7 @@ struct BitStream
         void     add_bits(uint32_t code, int count);
         unsigned length(void);
         void     init(void);
+        void     to_file(const std::string& filename);
 };
 
 

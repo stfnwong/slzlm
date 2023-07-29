@@ -40,34 +40,51 @@ TEST_CASE("test_bitstream_add_bits", "lzss")
 {
     std::stringstream ss;
     BitStream test_stream(ss);
-    uint32_t code = 0x8080;
-    //uint32_t code = 0x80808080;
+    uint32_t code = 0xFFFF8080;
 
     // Write 8 bits of this code
     test_stream.add_bits(code, 8);
-    std::cout << "Stream length : " << test_stream.length() << std::endl;
+    REQUIRE(test_stream.length() == 1);
 
+    //test_stream.to_file("str8.out");
 
     std::vector<uint8_t> str_vec;
     str_vec = stream_to_vec<uint8_t>(test_stream.ss);
-
+    REQUIRE(str_vec.size() == 1);
     for(unsigned i = 0; i < str_vec.size(); ++i)
-        std::cout << std::dec << "[" << i << "]: 0x" << std::setw(2) << std::hex << unsigned(str_vec[i]) << std::endl;
+        REQUIRE(str_vec[i] == 0x80);
 
 
     // Reset stream and write 16 codes
     test_stream.init();
     REQUIRE(test_stream.length() == 0);
+
     test_stream.ss.seekp(0, std::ios::beg);
     test_stream.ss.seekg(0, std::ios::beg);
     test_stream.add_bits(code, 16);
 
-    std::cout << "Stream length : " << test_stream.length() << std::endl;
+    //test_stream.to_file("str16.out");
 
+    REQUIRE(test_stream.length() == 2);
     str_vec = stream_to_vec<uint8_t>(test_stream.ss);
-    for(unsigned i = 0; i < str_vec.size(); ++i)
-        std::cout << std::dec << "[" << i << "]: 0x" << std::setw(2) << std::hex << unsigned(str_vec[i]) << std::endl;
+    REQUIRE(str_vec.size() == 2);
 
+    for(unsigned i = 0; i < str_vec.size(); ++i)
+        REQUIRE(str_vec[i] == 0x80);
+
+    test_stream.init();
+    REQUIRE(test_stream.length() == 0);
+
+    test_stream.add_bits(code, 32);
+    //test_stream.to_file("str32.out");
+    str_vec = stream_to_vec<uint8_t>(test_stream.ss);
+    REQUIRE(str_vec.size() == 4);
+
+    // Note: from most significant to least significant
+    std::vector<uint8_t> exp_vec = {0xFF, 0xFF, 0x80, 0x80};
+
+    for(unsigned i = 0; i < str_vec.size(); ++i)
+        REQUIRE(str_vec[i] == exp_vec[i]);
 
 }
 
