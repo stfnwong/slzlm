@@ -48,9 +48,10 @@ struct BitStream
         BitStream(std::stringstream& inp_stream) : 
             mask(0x80), rack(0), ss(inp_stream) {}
 
-        void add_bit(uint8_t bit);
-        void add_bits(uint32_t code, int count);
+        void     add_bit(uint8_t bit);
+        void     add_bits(uint32_t code, int count);
         unsigned length(void);
+        void     init(void);
 };
 
 

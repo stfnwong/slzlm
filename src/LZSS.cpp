@@ -91,16 +91,19 @@ void BitStream::add_bit(uint8_t bit)
 }
 
 
-void BitStream::add_bits(uint32_t code, int count)
+/*
+ * Write the lowest N bits of word
+ */
+void BitStream::add_bits(uint32_t word, int N)
 {
     uint32_t mask;
 
-    mask = 1L << (count - 1);
+    mask = 1L << (N - 1);
     while(mask != 0)
     {
-        if(mask & code)
+        if(mask & word)
             this->rack = (this->rack | this->mask);
-        this->mask = (this->mask >> 1);
+        this->mask = this->mask >> 1;
 
         if(this->mask == 0)
         {
@@ -108,6 +111,7 @@ void BitStream::add_bits(uint32_t code, int count)
             this->rack = 0;
             this->mask = 0x80;
         }
+        mask = mask >> 1;
     }
 }
 
@@ -120,6 +124,15 @@ unsigned BitStream::length(void)
     this->ss.seekg(old_pos);
 
     return end;
+}
+
+
+void BitStream::init(void)
+{
+    this->mask = 0x80;
+    this->rack = 0;
+    this->ss.clear();
+    this->ss.str("");
 }
 
 
