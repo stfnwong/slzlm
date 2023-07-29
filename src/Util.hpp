@@ -48,7 +48,24 @@ template <typename T> std::vector<T> stream_to_vec(std::stringstream& ss)
         bytes_read++;
     }
 
+    ss.seekg(0, std::ios::beg);
+
     return out_vec;
+}
+
+
+template <typename T> std::stringstream vec_to_stream(const std::vector<T>& vec)
+{
+    std::stringstream ss;
+
+    for(unsigned i = 0; i < vec.size(); ++i)
+    {
+        ss.write(reinterpret_cast<const char*>(&vec[i]), sizeof(T));
+    }
+
+    ss.seekg(0, std::ios::beg);
+
+    return ss;
 }
 
 

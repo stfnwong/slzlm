@@ -324,14 +324,14 @@ std::stringstream lzss_encode(const std::string_view data)
         if(match_length <= BREAK_EVEN)
         {
             replace_count = 1;
-            // output_bit(outfile, 1) (output a 1)
-            // output_bits(outfile, window[cur_pos], 8);
+            out_stream.add_bit(1);
+            out_stream.add_bits(window[cur_pos], 8);
         }
         else
         {
-            // output_bit(outfile, 0)   (output a 0)
-            // output_bits(outfile, match_pos, INDEX_BIT_COUNT);
-            // output_bits(outfile, match_length - (BREAK_EVEN+1), LENGTH_BIT_COUNT);
+            out_stream.add_bit(0);
+            out_stream.add_bits(match_pos, INDEX_BIT_COUNT);
+            out_stream.add_bits(match_length - (BREAK_EVEN+1), LENGTH_BIT_COUNT);
             replace_count = match_length;
         }
 
@@ -351,8 +351,8 @@ std::stringstream lzss_encode(const std::string_view data)
         }
     }
 
-    // output_bit(outfile, 0)
-    // output_bits(output, END_OF_STREAM, INDEX_BIT_COUNT);
+    out_stream.add_bit(0);
+    out_stream.add_bits(END_OF_STREAM, INDEX_BIT_COUNT);
 
     return ss;
 }

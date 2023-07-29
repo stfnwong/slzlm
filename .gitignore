@@ -19,3 +19,4 @@ __pycache__
 
 # Ignore various output files
 *.out
+*.test

@@ -7,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include <fstream>
+//#include <fstream>
 #include <vector>
 
 #include "LZSS.hpp"
@@ -33,6 +33,30 @@ TEST_CASE("test_bitstream_add_bit", "lzss")
 
     for(unsigned i = 0; i < str_vec.size(); ++i)
         REQUIRE(str_vec[i] == 0xAA);
+}
+
+
+TEST_CASE("test_bitstream_add_bit_pattern", "lzss")
+{
+    std::stringstream ss;
+    BitStream test_stream(ss);
+
+    // Most significant to least significant
+    std::vector<int> test_bit_pattern = {
+        1, 0, 0, 0, 1, 0, 0, 0
+    };
+
+    for(unsigned i = 0; i < test_bit_pattern.size(); ++i)
+        test_stream.add_bit(test_bit_pattern[i]); 
+
+    unsigned exp_length = 1;
+    REQUIRE(test_stream.length() == exp_length);
+    std::vector<uint8_t> str_vec = stream_to_vec<uint8_t>(test_stream.ss);
+    REQUIRE(str_vec.size() == exp_length);
+
+    //std::cout << "str[0]: 0x" << std::hex << std::setw(2) << unsigned(str_vec[0]) << std::endl;
+
+    REQUIRE(str_vec[0] == 0x88);
 }
 
 
@@ -85,7 +109,6 @@ TEST_CASE("test_bitstream_add_bits", "lzss")
 
     for(unsigned i = 0; i < str_vec.size(); ++i)
         REQUIRE(str_vec[i] == exp_vec[i]);
-
 }
 
 
