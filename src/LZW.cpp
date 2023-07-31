@@ -267,6 +267,92 @@ std::stringstream lzw_decode(std::stringstream& input)
     return out;
 }
 
+/*
+ * lzw_decode_sv()
+ * Decode from a string_view
+ */
+std::stringstream lzw_decode_sv(const std::string_view data)
+{
+    std::stringstream out;
+
+    // First 12 characters are header 
+    uint32_t offset24 = (data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0]);
+    uint32_t offset32 = (data[7] << 24 | data[6] << 16 | data[5] << 8 | data[4]);
+    //uint32_t num_codes = (data[11] << 24 | data[10] << 16 | data[9] << 8 | data[8]);
+
+    // Init symbol table 
+    std::vector<std::string> table(LZW_ALPHA_SIZE);
+    
+    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+        table[i] += i;
+
+    int bytes_per_code = 2;
+    unsigned inp_pos = 12;
+    unsigned new_code = 0;
+    unsigned old_code = 0;
+    char c;
+    char cc = 0;
+    std::string s;
+
+    // Read the first code
+    for(int i = 0; i < bytes_per_code; ++i)
+    {
+        c = data[inp_pos];
+        inp_pos++;
+        if(inp_pos >= data.size()-1)
+            return out;         // no more options, just return a stream
+
+        old_code = old_code | (c << (8*i));
+    }
+    
+    s += old_code;
+    out << s;
+
+    while(inp_pos < data.size())
+    {
+        if(inp_pos == offset24)
+            bytes_per_code = 3;
+        if(inp_pos == offset32)
+            bytes_per_code = 4;
+
+        new_code = 0;
+        for(int i = 0; i < bytes_per_code; ++i)
+        {
+            c = data[inp_pos];
+            inp_pos++;
+            new_code = new_code | (c << (8*i));
+
+            if(inp_pos >= data.size())
+                break;
+        }
+
+        if(new_code >= table.size())
+        {
+            s = table[old_code];
+            s += cc;
+        }
+        else
+        {
+            s = "";
+            s += table[new_code];
+        }
+
+        cc = s[0];
+        out << s;
+
+        std::string new_sym;
+        new_sym += table[old_code];
+        new_sym += cc;
+
+        table.push_back(new_sym);
+        old_code = new_code;
+    }
+
+    return out;
+}
+
+
+
 
 /*
  * Alternative encoder that uses an array rather than a map at each node

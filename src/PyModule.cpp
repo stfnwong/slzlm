@@ -21,6 +21,8 @@ std::string py_lzw_encode(const std::string_view input)
     return py::bytes(lzw_encode(input).str());
 }
 
+// TODO: how use a string view here?
+// TODO: how to return bytes to Python?
 std::string py_lzw_decode(const std::string& input)
 {
     std::stringstream ss(input);

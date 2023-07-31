@@ -318,3 +318,30 @@ TEST_CASE("test_array_node_encoder", "lzw")
     for(unsigned i = 0; i < stream_vec.size(); ++i)
         REQUIRE(exp_data[i] == stream_vec[i]);
 }
+
+
+TEST_CASE("test_lzw_decode_sv", "lzw")
+{
+    std::vector<uint16_t> inp_data = {98, 97, 256, 257, 97, 260};
+    std::stringstream input;
+
+    // Header 
+    uint32_t t = 0;
+    for(unsigned i = 0; i < 3; ++i)
+        input.write(reinterpret_cast<const char*>(&t), sizeof(uint32_t));
+
+    // Stream
+    for(unsigned i = 0; i < inp_data.size(); ++i)
+        input.write(reinterpret_cast<const char*>(&inp_data[i]), sizeof(uint16_t));
+
+    std::string inp_str = input.str();
+    auto dec_out = lzw_decode_sv(inp_str);
+
+    std::cout << "dec_out_str : " << dec_out.str() << std::endl;
+
+    std::string exp_out_str = "babaabaaa";
+    std::string dec_out_str = dec_out.str();
+
+    REQUIRE(exp_out_str.size() == dec_out_str.size());
+    REQUIRE(exp_out_str == dec_out_str);
+}

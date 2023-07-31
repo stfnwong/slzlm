@@ -23,6 +23,9 @@ const constexpr uint32_t LZW_ALPHA_SIZE = 1 << (8 * sizeof(lzw_symbol_t));
 std::stringstream lzw_encode(const std::string_view data);
 std::stringstream lzw_decode(std::stringstream& data);
 
+// Decode from a string_view
+std::stringstream lzw_decode_sv(const std::string_view data);
+
 /*
  * Encode from a std::stringstream rather than a std::string_view
  */
