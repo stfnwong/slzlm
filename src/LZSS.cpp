@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <fstream>
 
-// TODO: remove
-#include <iostream>
-
 #include "LZSS.hpp"
 
 
@@ -352,17 +349,14 @@ std::stringstream lzss_encode(const std::string_view data)
             delete_string(tree, mod_window(cur_pos + LOOK_AHEAD_SIZE));
             // if end of string, look_ahead_bytes--
             c = data[inp_pos];          // TODO: how to implement this condition?
-            if(c == EOF)
+            if(inp_pos >= unsigned(data.size()-1))
                 look_ahead_bytes--;
             else
                 window[mod_window(cur_pos + LOOK_AHEAD_SIZE)] = c;
             
             inp_pos++;
-            //inp_pos = std::min(inp_pos+1, unsigned(data.size()));
-            std::cout << "[" << __func__ << "] inp_pos : " << inp_pos << std::endl;
-            std::cout << "[" << __func__ << "] look_ahead_bytes : " << look_ahead_bytes << std::endl;
-            
-            cur_pos = mod_window(cur_pos+1);
+            cur_pos = mod_window(cur_pos+1);        // basically window position
+
             if(look_ahead_bytes)
                 match_length = add_string(tree, window, cur_pos, &match_pos);
         }

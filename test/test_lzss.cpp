@@ -150,6 +150,10 @@ TEST_CASE("test_lzss_encode", "lzss")
     const std::string input = "The Cruelty of Really Tea";
 
     auto enc_out = lzss_encode(input);
+    enc_out.seekg(0, std::ios::end);
+    std::cout << "End of stream at " << enc_out.tellg() << std::endl;
+    enc_out.seekg(0, std::ios::beg);
+
     std::vector<uint8_t> enc_byte_vec = stream_to_vec<uint8_t>(enc_out);
     std::cout << "enc_out length: " << enc_byte_vec.size() << " bytes" << std::endl;
 
@@ -159,5 +163,6 @@ TEST_CASE("test_lzss_encode", "lzss")
     std::cout << "]" << std::endl;;
 
     //std::cout << "enc_out: " << enc_out.str() << std::endl;
-    std::cout << "input was [" << input << "]" << std::endl;
+    std::cout << "Input was [" << input << "]" << std::endl;
+    std::cout << "Input size was [" << input.size() << "] characters." << std::endl;
 }
