@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <fstream>
 
+// TODO: remove
+#include <iostream>
+
 #include "LZSS.hpp"
 
 
@@ -146,17 +149,6 @@ void BitStream::to_file(const std::string& filename)
 }
 
 
-/*
- * Tree manipulation functions
- */
-
-int find_next_smallest_node(LZSSTree& tree, int node);
-void contract_node(LZSSTree& tree, int old_node, int new_node);
-void replace_node(LZSSTree& tree, int old_node, int new_node);
-void delete_string(LZSSTree& tree, int p);
-void init_tree(LZSSTree& tree, int r);
-
-
 int find_next_smallest_node(LZSSTree& tree, int node)
 {
     int next = tree[node].smaller;
@@ -229,10 +221,14 @@ int add_string(
         int* match_position
 )
 {
+    int child; // I don't get why this is a pointer in the original implementation?
     int test_node;
-    int delta;
     int match_length;
-    int *child;
+    // comp encodes comparison of new_node and test_node,
+    // < 1 if new_node < test_node, 
+    // 0 if new_node == test_node
+    // > 1 if new_node > test_node
+    int comp;          
 
     if(new_node == END_OF_STREAM)
         return 0;
@@ -240,40 +236,45 @@ int add_string(
     test_node = tree[TREE_ROOT].larger;
     match_length = 0;
 
+    // TODO: doesn't terminate
     for(;;)
     {
-        for(int i = 0; i < LOOK_AHEAD_SIZE; ++i)
+        // Find the number of characters that match
+        int i;
+        for(i = 0; i < LOOK_AHEAD_SIZE; ++i)
         {
-            delta = window[mod_window(new_node + i)] - 
-                window[mod_window(test_node + i)];
-                if(delta != 0)
-                    break;
-            if(i >= match_length)
-            {
-                match_length = i;
-                *match_position = test_node;
-                if(match_length >= LOOK_AHEAD_SIZE)
-                {
-                    replace_node(tree, test_node, new_node);
-                    return match_length;
-                }
-            }
+            comp = window[mod_window(new_node + i)] - window[mod_window(test_node + i)];
+            if(comp != 0)
+                break;
+        }
 
-            if(delta >= 0)
-                child = &tree[test_node].larger;
-            else
-                child = &tree[test_node].smaller;
-            if(*child == TREE_UNUSED)
-            {
-                *child = new_node;
-                tree[new_node].parent = test_node;
-                tree[new_node].larger = TREE_UNUSED;
-                tree[new_node].smaller = TREE_UNUSED;
+        if(i >= match_length)
+        {
+            match_length = i;
+            *match_position = test_node;
 
+            if(match_length >= LOOK_AHEAD_SIZE)
+            {
+                replace_node(tree, test_node, new_node);
                 return match_length;
             }
-            test_node = *child;
         }
+
+        if(comp >= 0)
+            child = tree[test_node].larger;
+        else
+            child = tree[test_node].smaller;
+
+        if(child == TREE_UNUSED)
+        {
+            child = new_node;
+            tree[new_node].parent = test_node;
+            tree[new_node].larger = TREE_UNUSED;
+            tree[new_node].smaller = TREE_UNUSED;
+
+            return match_length;
+        }
+        test_node = child;
     }
 }
 
@@ -292,26 +293,34 @@ void init_tree(LZSSTree& tree, int r)
 
 
 // LZSS encode 
+// Stream consists of either SYMBOLS or REFERENCES
+//
+// SYMBOL: An actual symbol. Encoding is a single 1-bit followed by 8-bits of symbol 
+// data. 
+//
+// REFERENCE: Instruction to repeat some sequence from the window. Encoding is a 
+// single 0-bit followed by 12-bit index representing position, followed by 4-bit
+// index representing length. Eg:
+//
+// 1 | pos | len 
 std::stringstream lzss_encode(const std::string_view data)
 {
     std::stringstream ss;
     BitStream out_stream(ss);
 
     LZSSTree tree;
-    std::array<char, WINDOW_SIZE> window;
+    LZSSWindow window;
     int look_ahead_bytes;
     int match_length = 0;
     int match_pos = 0;
     int replace_count = 0;
 
-    unsigned N = std::min(LOOK_AHEAD_SIZE, int(data.size()));
 
     unsigned cur_pos = 1;
     unsigned inp_pos = 0;
+    unsigned N = std::min(LOOK_AHEAD_SIZE, int(data.size()));
     for(inp_pos = 0; inp_pos < N; ++inp_pos)
-    {
         window[cur_pos + inp_pos] = data[inp_pos];
-    }
 
     look_ahead_bytes = 1;
     init_tree(tree, cur_pos);
@@ -321,12 +330,15 @@ std::stringstream lzss_encode(const std::string_view data)
     {
         if(match_length > look_ahead_bytes)
             match_length = look_ahead_bytes;
+
+        // Encode a single character
         if(match_length <= BREAK_EVEN)
         {
             replace_count = 1;
             out_stream.add_bit(1);
             out_stream.add_bits(window[cur_pos], 8);
         }
+        // Encode a reference
         else
         {
             out_stream.add_bit(0);
@@ -345,6 +357,11 @@ std::stringstream lzss_encode(const std::string_view data)
             else
                 window[mod_window(cur_pos + LOOK_AHEAD_SIZE)] = c;
             
+            inp_pos++;
+            //inp_pos = std::min(inp_pos+1, unsigned(data.size()));
+            std::cout << "[" << __func__ << "] inp_pos : " << inp_pos << std::endl;
+            std::cout << "[" << __func__ << "] look_ahead_bytes : " << look_ahead_bytes << std::endl;
+            
             cur_pos = mod_window(cur_pos+1);
             if(look_ahead_bytes)
                 match_length = add_string(tree, window, cur_pos, &match_pos);
@@ -356,9 +373,3 @@ std::stringstream lzss_encode(const std::string_view data)
 
     return ss;
 }
-
-
-
-
-
-

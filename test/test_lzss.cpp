@@ -15,6 +15,10 @@
 
 
 
+
+/*
+ * Bitstream
+ */
 TEST_CASE("test_bitstream_add_bit", "lzss")
 {
     std::stringstream ss;
@@ -112,11 +116,48 @@ TEST_CASE("test_bitstream_add_bits", "lzss")
 }
 
 
-//TEST_CASE("test_lzss_encode", "lzss")
+
+/*
+ * Tree manipulation
+ */
+//TEST_CASE("test_lzss_tree", "lzss")
 //{
-//    const std::string input = "babaabaaa";
+//    std::string test_filename = "test/shakespear.txt";
+//    std::ifstream file(test_filename);
+//    std::string text(std::istreambuf_iterator<char>{file}, {});
+//    file.close();
 //
-//    auto enc_out = lzss_encode(input);
+//    LZSSTree tree;
+//    LZSSWindow window;
 //
-//    std::cout << "enc_out: " << enc_out.str() << std::endl;
+//    // preload window 
+//    unsigned inp_pos = 0;
+//    unsigned cur_pos = 1;
+//    for(inp_pos = 0; inp_pos < WINDOW_SIZE; ++inp_pos)
+//        window[inp_pos + cur_pos] = text[inp_pos];
 //}
+
+
+
+
+
+/*
+ * Encoding and Decoding
+ */
+TEST_CASE("test_lzss_encode", "lzss")
+{
+    //const std::string input = "babaabaaa";
+    const std::string input = "The Cruelty of Really Tea";
+
+    auto enc_out = lzss_encode(input);
+    std::vector<uint8_t> enc_byte_vec = stream_to_vec<uint8_t>(enc_out);
+    std::cout << "enc_out length: " << enc_byte_vec.size() << " bytes" << std::endl;
+
+    std::cout << "[";
+    for(unsigned i = 0; i < enc_byte_vec.size(); ++i)
+        std::cout << enc_byte_vec[i] << " ";
+    std::cout << "]" << std::endl;;
+
+    //std::cout << "enc_out: " << enc_out.str() << std::endl;
+    std::cout << "input was [" << input << "]" << std::endl;
+}
