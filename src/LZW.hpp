@@ -19,13 +19,20 @@ using lzw_symbol_t = uint8_t;
 const constexpr uint32_t LZW_ALPHA_SIZE = 1 << (8 * sizeof(lzw_symbol_t));
 
 
-// TODO: re-write as functions
-
 // Encode function
 std::stringstream lzw_encode(const std::string_view data);
 std::stringstream lzw_decode(std::stringstream& data);
 
+/*
+ * Encode from a std::stringstream rather than a std::string_view
+ */
 std::stringstream lzw_encode_from_stream(std::stringstream& data);
+
+
+/*
+ * Encoder where the node contains an array rather than a map
+ */
+std::stringstream lzw_array_encode(const std::string_view data);
 
 /*
  * Encoder

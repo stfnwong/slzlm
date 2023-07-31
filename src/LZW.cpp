@@ -4,6 +4,7 @@
  *
  */
 
+#include <array>
 #include <stack>
 #include <utility>
 #include <fstream>
@@ -54,10 +55,8 @@ std::stringstream lzw_encode(const std::string_view data)
     for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
         node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
 
-    unsigned count = 0;
     for(const auto& c: data)  // is there a problem here when c == 200?
     {
-        count++;
         auto& children = node->children;
         // see if we have c already
         auto it = children.find(lzw_symbol_t(c));
@@ -67,9 +66,7 @@ std::stringstream lzw_encode(const std::string_view data)
             // write this code to output
             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             // insert 
-            it = node->children.find(c);
-            if(it == children.end())
-                it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
+            it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
             node = prefix_tree->children.find(c)->second.get();
             cur_key++;
 
@@ -271,74 +268,86 @@ std::stringstream lzw_decode(std::stringstream& input)
 }
 
 
+/*
+ * Alternative encoder that uses an array rather than a map at each node
+ */
+
+// Null value for this node is 0xFFFFFFFF
+const constexpr uint32_t ARRAY_NODE_UNUSED = 0xFFFFFFFF;
+
+struct ArrayNode
+{
+    uint32_t value;
+    bool leaf;
+    std::array<std::unique_ptr<ArrayNode>, LZW_ALPHA_SIZE> children;
+
+    public:
+        ArrayNode() {} 
+        ArrayNode(uint32_t v, bool l) : value(v), leaf(l) {} 
+};
+
 
 /*
- * Return the prefix code for some sequence if it exists, otherwise 
- * return an empty vector.
+ * Encoding but with the array node
  */
-// TODO: add this to encoder
-//std::vector<uint16_t> LZWDict::get_code(const std::string_view word) const
-//{
-//    std::vector<uint16_t> out;
-//    auto* node = this->root.get();
-//
-//    for(auto const c: word)
-//    {
-//        auto& children = node->children;
-//        auto it = children.find(lzw_symbol_t(c));
-//        if(it == children.end())
-//        {
-//            out.push_back(node->value);
-//            node = this->root->children.find(c)->second.get();
-//        }
-//        else
-//            node = it->second.get();
-//    }
-//
-//    if(node->leaf)
-//        out.push_back(node->value);
-//
-//    return out;
-//}
+std::stringstream lzw_array_encode(const std::string_view data)
+{
+    std::stringstream out;
+    int bytes_per_code = 2;    // minimum code size is 16-bits
+    int offset24 = 0;
+    int offset32 = 0;
+    int num_codes = 0;
+    uint32_t cur_key = 0;
 
+    // Write offset data to start of stream
+    out.seekp(0);
+    // write dummy values for later 
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
 
-//std::vector<std::vector<uint32_t>> LZWDict::find_all(void) const
-//{
-//    std::vector<std::vector<uint32_t>> out;
-//    std::vector<uint32_t> traversal;
-//
-//    using StackData = std::pair<LZWNode*, int>;
-//
-//    std::stack<StackData> s;
-//    LZWNode* node = this->root.get();
-//    s.push({node, 0});
-//
-//    int cur_level = 0;
-//    while(!s.empty())
-//    {
-//        auto stack_data = s.top();
-//        s.pop();
-//        LZWNode* cur_node = stack_data.first;
-//        int node_level = stack_data.second;
-//
-//        if(node_level < cur_level)
-//        {
-//            out.push_back(traversal);
-//            traversal.clear();
-//        }
-//
-//        if(cur_level > 0)
-//            traversal.push_back(cur_node->value);
-//
-//        auto& children = cur_node->children;
-//        for(auto it = children.begin(); it != children.end(); ++it)
-//            s.push({it->second.get(), cur_level+1});
-//        cur_level++;
-//    }
-//    
-//
-//    return out;
-//}
+    std::unique_ptr<ArrayNode> prefix_tree = std::make_unique<ArrayNode>();
+
+    // Init the dict 
+    auto* node = prefix_tree.get();
+    for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
+        node->children[cur_key] = std::make_unique<ArrayNode>(cur_key, true);
+
+    for(const auto& c : data)
+    {
+         auto& children = node->children;
+         if(children[c].get() == nullptr)
+         {
+             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+             children[c] = std::make_unique<ArrayNode>(cur_key, true);
+             cur_key++;
+
+             node = prefix_tree->children[c].get();
+
+             if(cur_key == 0xFFFF)
+             {
+                 bytes_per_code = 3;
+                 offset24 = out.tellp();
+             }
+             if(cur_key == 0xFFFFFF)
+             {
+                 bytes_per_code = 4;
+                 offset32 = out.tellp();
+             }
+         }
+         else
+             node = children[c].get();
+    }
+
+    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+    // write offsets 
+    out.seekp(0, std::ios::beg);
+    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
+
+    return out;
+}
 
 
 /*

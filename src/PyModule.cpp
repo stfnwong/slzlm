@@ -16,7 +16,7 @@ namespace py = pybind11;
 
 
 // Wrappers for encode/decode standalone functions
-std::string py_lzw_encode(const std::string& input)
+std::string py_lzw_encode(const std::string_view input)
 {
     return py::bytes(lzw_encode(input).str());
 }
@@ -49,7 +49,13 @@ PYBIND11_MODULE(slz, m)
     py::class_ <LZWDecoder>(m, "LZWDecoder")
         .def(py::init<>())
         .def("init", &LZWDecoder::init)
-        // TODO: this might not be possible...
+        // TODO: is there a way to zero-copy init a stringstream from string_view or 
+        // py::bytes/py::buffer?
+        //.def("decode", [](LZWDecoder& self, py::buffer data) {
+        //        py::buffer_info info = data.request();
+        //        std::stringstream ss(info.ptr);
+        //        self.decode(ss);
+        //})
         .def("decode", [](LZWDecoder &self, const std::string& data) {
                 std::stringstream ss(data);
                 self.decode(ss);        // TODO: wtf is wrong with this?

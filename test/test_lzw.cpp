@@ -64,6 +64,7 @@ TEST_CASE("test_encode_long_string", "lzw")
     std::cout << "encoded length : " << enc_out.str().size() << " characters" << std::endl;
     float r = float(enc_out.str().size()) / float(text.size());
     std::cout << "Ratio : " << r << std::endl;
+    REQUIRE(r < 1.0);
 }
 
 
@@ -215,23 +216,6 @@ TEST_CASE("test_lzw_encoder_to_file", "lzw")
 }
 
 
-//TEST_CASE("test_lzw_encode_loop_2", "lzw")
-//{
-//    std::string test_filename = "test/shakespear.txt";
-//    std::ifstream file(test_filename);
-//    std::string text(std::istreambuf_iterator<char>{file}, {});
-//    file.close();
-//
-//    LZWEncoder lzw;
-//
-//    unsigned chunk_size = 64;
-//    unsigned num_chunks = 8;
-//
-//    for(unsigned c = 0; c < num_chunks-1; ++c)
-//    {
-//        std::string chunk = text.substr(c * chunk_size, chunk_size);
-//}
-
 // ===== Object oriented encoder ===== //
 
 TEST_CASE("test_lzw_decoder_count", "lzw")
@@ -317,3 +301,20 @@ TEST_CASE("test_lzw_decoder_loop", "lzw")
 
 
 
+
+/*
+ * Array node encoder
+ */
+TEST_CASE("test_array_node_encoder", "lzw")
+{
+    const std::string test_data = "babaabaaa";
+    std::stringstream enc_out = lzw_array_encode(test_data);
+
+    enc_out.seekg(3 * sizeof(uint32_t), std::ios::beg);   // skip header
+    std::vector<uint16_t> stream_vec = stream_to_vec<uint16_t>(enc_out);
+    std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
+
+    REQUIRE(exp_data.size() == stream_vec.size());
+    for(unsigned i = 0; i < stream_vec.size(); ++i)
+        REQUIRE(exp_data[i] == stream_vec[i]);
+}
