@@ -6,6 +6,7 @@
 
 // Stringstream test 
 #include <sstream>
+#include <string>
 
 
 #include "Trie.hpp"
@@ -16,17 +17,23 @@ namespace py = pybind11;
 
 
 // Wrappers for encode/decode standalone functions
-std::string py_lzw_encode(const std::string_view input)
+std::string_view py_lzw_encode(py::bytes data)
 {
-    return py::bytes(lzw_encode(input).str());
+    py::buffer_info info(py::buffer(data).request());
+    const char* buf = reinterpret_cast<const char*>(info.ptr);
+    size_t length = static_cast<size_t>(info.size);
+    std::string_view s(buf, length);
+    return py::bytes(lzw_encode(s).str());
 }
 
-// TODO: how use a string view here?
-// TODO: how to return bytes to Python?
-std::string py_lzw_decode(const std::string& input)
+
+std::string_view py_lzw_decode(py::bytes data)
 {
-    std::stringstream ss(input);
-    return py::bytes(lzw_decode(ss).str());
+    py::buffer_info info(py::buffer(data).request());
+    const char* buf = reinterpret_cast<const char*>(info.ptr);
+    size_t length = static_cast<size_t>(info.size);
+    std::string_view s(buf, length);
+    return py::bytes(lzw_decode_sv(s).str());
 }
 
 
