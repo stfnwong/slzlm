@@ -37,6 +37,8 @@ std::string py_lzw_decode(const std::string& input)
 }
 
 
+// DEFLATE function wrappers 
+
 
 PYBIND11_MODULE(slz, m)
 {
@@ -47,11 +49,7 @@ PYBIND11_MODULE(slz, m)
         .def("get_code", &LZWDict::get_code)
         .def("contains", &LZWDict::contains);
 
-    // Prefix tree
-    py::class_ <Trie>(m, "Trie")
-        .def(py::init<>())
-        .def("insert", &Trie::insert)
-        .def("search", &Trie::search);
+    // DEFLATE functions
 
     // Function encode 
     m.def("lzw_encode", &py_lzw_encode);

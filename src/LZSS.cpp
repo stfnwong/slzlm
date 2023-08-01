@@ -20,74 +20,20 @@ static inline int mod_window(int a)
 
 
 
-struct BitFile 
-{
-    FILE* file;
-    uint8_t mask;
-    int rack;
-};
-
-
-// TODO: don't use this in the final version...
-int output_bit(BitFile* bitfile, int bit)
-{
-    if(bit)
-        bitfile->rack |= bitfile->mask;
-
-    bitfile->mask = bitfile->mask >> 1;
-    if(bitfile->mask == 0)
-    {
-        if(putc(bitfile->rack, bitfile->file) != bitfile->rack)
-            return -1;
-        bitfile->rack = 0;
-        bitfile->mask = 0x80;
-    }
-
-    return 0;
-}
-
-
-int output_bits(BitFile* bitfile, unsigned long code, int count)
-{
-    unsigned long mask;
-
-    mask = 1L << (count - 1);
-    while(mask != 0)
-    {
-        if(mask & code)
-            bitfile->rack = bitfile->rack | bitfile->mask;
-        bitfile->mask = bitfile->mask >> 1;
-        
-        if(bitfile->mask == 0)
-        {
-            if(putc(bitfile->rack, bitfile->file) != bitfile->rack)
-                return -1;
-
-            bitfile->rack = 0;
-            bitfile->mask = 0x80;
-        }
-
-        mask = mask >> 1;
-    }
-
-    return 0;
-}
-
-
 /*
  * Wrapper for bitstream
  */
-void BitStream::add_bit(uint8_t bit)
+void BitStream::write_bit(uint8_t bit)
 {
     if(bit)
-        this->rack = (this->rack | this->mask);
-    this->mask = this->mask >> 1;
+        this->wr_buf = (this->wr_buf | this->wr_mask);
+    this->wr_mask = this->wr_mask >> 1;
 
-    if(this->mask == 0)
+    if(this->wr_mask == 0)
     {
-        this->ss.write(reinterpret_cast<const char*>(&this->rack), sizeof(uint8_t));
-        this->rack = 0;
-        this->mask = 0x80;
+        this->ss.write(reinterpret_cast<const char*>(&this->wr_buf), sizeof(uint8_t));
+        this->wr_buf = 0;
+        this->wr_mask = 0x80;
     }
 }
 
@@ -95,7 +41,7 @@ void BitStream::add_bit(uint8_t bit)
 /*
  * Write the lowest N bits of word
  */
-void BitStream::add_bits(uint32_t word, int N)
+void BitStream::write_bits(uint32_t word, int N)
 {
     uint32_t mask;
 
@@ -103,18 +49,78 @@ void BitStream::add_bits(uint32_t word, int N)
     while(mask != 0)
     {
         if(mask & word)
-            this->rack = (this->rack | this->mask);
-        this->mask = this->mask >> 1;
+            this->wr_buf = (this->wr_buf | this->wr_mask);
+        this->wr_mask = this->wr_mask >> 1;
 
-        if(this->mask == 0)
+        if(this->wr_mask == 0)
         {
-            this->ss.write(reinterpret_cast<const char*>(&this->rack), sizeof(uint8_t));
-            this->rack = 0;
-            this->mask = 0x80;
+            this->ss.write(reinterpret_cast<const char*>(&this->wr_buf), sizeof(uint8_t));
+            this->wr_buf = 0;
+            this->wr_mask = 0x80;
         }
         mask = mask >> 1;
     }
 }
+
+
+/*
+ * Read one bit from the stream
+ */
+uint8_t BitStream::read_bit(void)
+{
+    int value;
+    char c;
+
+    if(this->rd_mask == 0x80)
+    {
+        this->ss.read(&c, sizeof(char));
+        if(c == EOF)
+            return 0;
+        this->rd_buf = c;
+    }
+
+    //value = this->rd_buf & this->rd_mask;
+    value = this->rd_buf & this->rd_mask;
+    this->rd_mask = this->rd_mask >> 1;
+    
+    if(this->rd_mask == 0)
+        this->rd_mask = 0x80;
+
+    return value ? 1 : 0;
+}
+
+
+uint32_t BitStream::read_bits(int count)
+{
+    uint32_t mask, rv;
+    char c;
+
+    mask = 1L << (count - 1);
+    rv = 0;    
+
+    while(mask != 0)
+    {
+        if(this->rd_mask == 0x80)
+        {
+            this->ss.read(&c, sizeof(char));
+            if(c == EOF)
+                return 0;           // Would be better to signal (fatal) error. 
+            this->rd_buf = c;
+        }
+
+        if(this->rd_buf & this->rd_mask)
+            rv = rv | mask;
+        mask = mask >> 1;
+        this->rd_mask = this->rd_mask >> 1;
+
+        if(this->rd_mask == 0)
+            this->rd_mask = 0x80;
+    }
+
+    return rv;
+}
+    
+
 
 
 unsigned BitStream::length(void)
@@ -130,8 +136,10 @@ unsigned BitStream::length(void)
 
 void BitStream::init(void)
 {
-    this->mask = 0x80;
-    this->rack = 0;
+    this->wr_mask = 0x80;
+    this->rd_mask = 0x80;
+    this->wr_buf = 0;
+    this->rd_buf = 0;
     this->ss.clear();
     this->ss.str("");
 }
@@ -332,15 +340,15 @@ std::stringstream lzss_encode(const std::string_view data)
         if(match_length <= BREAK_EVEN)
         {
             replace_count = 1;
-            out_stream.add_bit(1);
-            out_stream.add_bits(window[cur_pos], 8);
+            out_stream.write_bit(1);
+            out_stream.write_bits(window[cur_pos], 8);
         }
         // Encode a reference
         else
         {
-            out_stream.add_bit(0);
-            out_stream.add_bits(match_pos, INDEX_BIT_COUNT);
-            out_stream.add_bits(match_length - (BREAK_EVEN+1), LENGTH_BIT_COUNT);
+            out_stream.write_bit(0);
+            out_stream.write_bits(match_pos, INDEX_BIT_COUNT);
+            out_stream.write_bits(match_length - (BREAK_EVEN+1), LENGTH_BIT_COUNT);
             replace_count = match_length;
         }
 
@@ -362,8 +370,31 @@ std::stringstream lzss_encode(const std::string_view data)
         }
     }
 
-    out_stream.add_bit(0);
-    out_stream.add_bits(END_OF_STREAM, INDEX_BIT_COUNT);
+    out_stream.write_bit(0);
+    out_stream.write_bits(END_OF_STREAM, INDEX_BIT_COUNT);
 
     return ss;
+}
+
+
+
+/*
+ * Decode
+ */
+std::stringstream lzss_decode(const std::string_view data)
+{
+    int inp_pos = 0;
+    int cur_pos = 1;
+    int match_pos;
+    int match_length;
+
+    cur_pos = 1;
+
+    char c;
+    for(;;)
+    {
+        c = data[inp_pos];
+        inp_pos++;
+
+    }
 }

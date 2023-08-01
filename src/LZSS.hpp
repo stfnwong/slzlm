@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <utility>
 
 
 /*
@@ -39,16 +40,21 @@ constexpr const int END_OF_STREAM      = 0;
 // Once it works consider finding a serialization lib
 struct BitStream
 {
-    uint8_t mask;
-    int rack;
+    uint8_t wr_mask;
+    uint8_t rd_mask;
+    int wr_buf;
+    int rd_buf;
     std::stringstream& ss;
 
     public:
         BitStream(std::stringstream& inp_stream) : 
-            mask(0x80), rack(0), ss(inp_stream) {}
+            wr_mask(0x80), rd_mask(0x80), 
+            wr_buf(0), rd_buf(0), ss(inp_stream) {}
 
-        void     add_bit(uint8_t bit);
-        void     add_bits(uint32_t code, int count);
+        void     write_bit(uint8_t bit);
+        void     write_bits(uint32_t code, int count);
+        uint8_t  read_bit(void);
+        uint32_t read_bits(int count);
         unsigned length(void);
         void     init(void);
         void     to_file(const std::string& filename);
@@ -88,6 +94,7 @@ void init_tree(LZSSTree& tree, int r);
  * Encoding functions
  */
 std::stringstream lzss_encode(const std::string_view data);
+std::stringstream lzss_decode(const std::string_view data);
 
 
 

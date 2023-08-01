@@ -19,14 +19,14 @@
 /*
  * Bitstream
  */
-TEST_CASE("test_bitstream_add_bit", "lzss")
+TEST_CASE("test_bitstream_write_bit", "lzss")
 {
     std::stringstream ss;
     BitStream test_stream(ss);
 
     unsigned num_bits = 32;
     for(unsigned i = 0; i < num_bits; ++i)
-        test_stream.add_bit(i % 2 == 0);            // Should be all 0xAA on intel (not portable)
+        test_stream.write_bit(i % 2 == 0);            // Should be all 0xAA on intel (not portable)
 
     unsigned exp_length = num_bits / 8;
     unsigned str_length = test_stream.length();
@@ -40,7 +40,7 @@ TEST_CASE("test_bitstream_add_bit", "lzss")
 }
 
 
-TEST_CASE("test_bitstream_add_bit_pattern", "lzss")
+TEST_CASE("test_bitstream_write_bit_pattern", "lzss")
 {
     std::stringstream ss;
     BitStream test_stream(ss);
@@ -51,7 +51,7 @@ TEST_CASE("test_bitstream_add_bit_pattern", "lzss")
     };
 
     for(unsigned i = 0; i < test_bit_pattern.size(); ++i)
-        test_stream.add_bit(test_bit_pattern[i]); 
+        test_stream.write_bit(test_bit_pattern[i]); 
 
     unsigned exp_length = 1;
     REQUIRE(test_stream.length() == exp_length);
@@ -64,14 +64,14 @@ TEST_CASE("test_bitstream_add_bit_pattern", "lzss")
 }
 
 
-TEST_CASE("test_bitstream_add_bits", "lzss")
+TEST_CASE("test_bitstream_write_bits", "lzss")
 {
     std::stringstream ss;
     BitStream test_stream(ss);
     uint32_t code = 0xFFFF8080;
 
     // Write 8 bits of this code
-    test_stream.add_bits(code, 8);
+    test_stream.write_bits(code, 8);
     REQUIRE(test_stream.length() == 1);
 
     //test_stream.to_file("str8.out");
@@ -89,7 +89,7 @@ TEST_CASE("test_bitstream_add_bits", "lzss")
 
     test_stream.ss.seekp(0, std::ios::beg);
     test_stream.ss.seekg(0, std::ios::beg);
-    test_stream.add_bits(code, 16);
+    test_stream.write_bits(code, 16);
 
     //test_stream.to_file("str16.out");
 
@@ -103,7 +103,7 @@ TEST_CASE("test_bitstream_add_bits", "lzss")
     test_stream.init();
     REQUIRE(test_stream.length() == 0);
 
-    test_stream.add_bits(code, 32);
+    test_stream.write_bits(code, 32);
     //test_stream.to_file("str32.out");
     str_vec = stream_to_vec<uint8_t>(test_stream.ss);
     REQUIRE(str_vec.size() == 4);
@@ -116,6 +116,35 @@ TEST_CASE("test_bitstream_add_bits", "lzss")
 }
 
 
+TEST_CASE("test_bitstream_read_bit", "lszz")
+{
+    // Test reading single bits 
+
+    std::stringstream ss;
+    BitStream test_stream(ss);
+
+    unsigned num_bits = 32;
+    for(unsigned i = 0; i < num_bits; ++i)
+        test_stream.write_bit(i % 2 == 0);
+
+    test_stream.to_file("read_bit.test");
+
+    // Bitstream handles the underlying stream, we can just consume one bit at a time
+    REQUIRE(test_stream.read_bit() == 1);
+    REQUIRE(test_stream.read_bit() == 0);
+    REQUIRE(test_stream.read_bit() == 1);
+    REQUIRE(test_stream.read_bit() == 0);
+
+    // etc
+    // If we read the next 4 bits the pattern should continue
+    uint32_t more_bits;
+    more_bits = test_stream.read_bits(4);
+    REQUIRE(more_bits == 0xA);
+
+    // There are 3 more bytes
+    more_bits = test_stream.read_bits(12);
+    REQUIRE(more_bits == 0xAAA);
+}
 
 /*
  * Tree manipulation
@@ -165,4 +194,6 @@ TEST_CASE("test_lzss_encode", "lzss")
     //std::cout << "enc_out: " << enc_out.str() << std::endl;
     std::cout << "Input was [" << input << "]" << std::endl;
     std::cout << "Input size was [" << input.size() << "] characters." << std::endl;
+
+    REQUIRE(enc_byte_vec.size() < input.size());
 }
