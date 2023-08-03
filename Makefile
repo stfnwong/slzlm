@@ -24,7 +24,7 @@ OPT=-O0
 #CXXFLAGS=-Wall -g2 -std=c++17 -D_REENTRANT $(OPT) -fPIC -shared $(PYTHON_CFLAGS)
 CXXFLAGS=$(PYTHON_CFLAGS) -Wall -g2 -std=c++17 -D_REENTRANT  -fPIC -shared $(OPT)
 TESTFLAGS=
-LDFLAGS=$(PYTHON_LDFLAGS) -lpython3.11
+LDFLAGS=$(PYTHON_LDFLAGS) -lpython$(PYTHON_VERSION)
 LIBS= 
 TEST_LIBS=
 
@@ -66,7 +66,7 @@ $(TESTS): $(TEST_OBJECTS) $(OBJECTS)
 
 
 # ==== PROGRAM TARGETS ==== #
-PROGRAMS = trie encode
+PROGRAMS = trie encode_lzw_map encode_lzw_array
 PROGRAM_OBJECTS := $(PROGRAM_SOURCES:$(PROGRAM_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 $(PROGRAM_OBJECTS): $(OBJ_DIR)/%.o : $(PROGRAM_DIR)/%.cpp

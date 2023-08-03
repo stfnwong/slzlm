@@ -27,6 +27,10 @@ __pycache__
 
 # Ignore callgrind output
 callgrind*
+cachegrind*
 # Ignore perf output
 perf.data*
+perf.hist*
 profile.*
+*.gprof
+gmon.out

@@ -1,8 +1,6 @@
-// Can I put the python module in a new file?
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/functional.h>
+#include <pybind11/numpy.h>
 
 // Stringstream test 
 #include <sstream>
@@ -16,14 +14,28 @@
 namespace py = pybind11;
 
 
-// Wrappers for encode/decode standalone functions
-std::string_view py_lzw_encode(py::bytes data)
+/*
+ * Python wrappers.
+ *
+ * The point of these wrappers is mostly to try and get the byte handling 
+ * between Python and C++ right. I have no idea what I am doing for the most part and
+ * am just experimenting with different things to see what happens. Ideally we don't 
+ * copy any of the input bytes.
+ */
+std::string py_lzw_encode(const std::string_view data)
 {
-    py::buffer_info info(py::buffer(data).request());
-    const char* buf = reinterpret_cast<const char*>(info.ptr);
-    size_t length = static_cast<size_t>(info.size);
-    std::string_view s(buf, length);
-    return py::bytes(lzw_encode(s).str());
+    //py::buffer_info info(py::buffer(data).request());
+    //const char* buf = reinterpret_cast<const char*>(info.ptr);
+    //size_t length = static_cast<size_t>(info.size);
+    //std::string_view s(buf, length);
+
+    //auto rv = lzw_encode(s);
+    //return std::string_view(
+    //        reinterpret_cast<char*>(rv.data()),
+    //        rv.size()
+    //);
+
+    return py::bytes(lzw_encode(data).str());
 }
 
 
@@ -33,7 +45,53 @@ std::string_view py_lzw_decode(py::bytes data)
     const char* buf = reinterpret_cast<const char*>(info.ptr);
     size_t length = static_cast<size_t>(info.size);
     std::string_view s(buf, length);
-    return py::bytes(lzw_decode_sv(s).str());
+
+    auto rv = lzw_decode_sv(s);
+    return std::string_view(
+            reinterpret_cast<char*>(rv.data()),
+            rv.size()
+    );
+    //return py::bytes(lzw_decode_sv(s));
+    //return py::bytes(lzw_decode_sv(s).str());
+}
+
+
+// Helper function to avoid return copy
+// source: https://github.com/pybind/pybind11/issues/1042#issuecomment-642215028
+
+//template <typename Seq>
+//inline py::array_t<typename Seq::value_type> as_pyarray(Seq&& sequence)
+//{
+//    auto size = sequence.size();
+//    auto data = sequence.data();
+//
+//    std::unique_ptr<Seq> seq_ptr = std::make_unique<Seq>(std::move(sequence));
+//    auto capsule = py::capsule(seq_ptr.get(), [](void* p) {
+//        std::unique_ptr<Seq>(reinterpret_cast<Seq*>(p));
+//    });
+//
+//    seq_ptr.release();
+//
+//    return py::array(size, data, capsule);
+//}
+//
+
+
+
+py::array_t<char> py_numpy_test(const py::ssize_t size)
+{
+    ///py::buffer_info info(py::buffer(data).request());
+    ///const char* data = reinterpret_cast<const char*>(info.ptr);
+    ///size_t length = static_cast<size_t>(info.length);
+
+    std::vector<char> vec(size);
+    for(unsigned i = 0; i < size; ++i)
+        vec[i] = (2 * i)  % 256;
+
+    return py::array(size, vec.data());
+    //return py::array_t<double>(size);
+
+    //return std::vector<char>(data, data+length);
 }
 
 
@@ -84,4 +142,6 @@ PYBIND11_MODULE(slz, m)
     m.def("lzw_encode", &py_lzw_encode);
     // Function decode 
     m.def("lzw_decode", &py_lzw_decode);
+
+    m.def("numpy_test", &py_numpy_test);
 }

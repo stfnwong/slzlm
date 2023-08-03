@@ -30,6 +30,22 @@ def test_lzw_decode():
     assert decode_out == test_input
 
 
+def test_lzw_large_text():
+    test_filename = "test/shakespear.txt"
+
+    # Turns out to be simpler to read text as binary
+    with open(test_filename, "rb") as fp:
+        text = fp.read()
+
+    # TODO: still have problems with bytes... do I switch to numpy arrays?
+    from pudb import set_trace; set_trace()
+    enc_text = lzw_encode(text)
+    dec_text = lzw_decode(enc_text)
+
+    assert dec_text == text
+
+
+
 # Object-oriented encoder
 def test_lzw_oo_encode():
     test_input = "babaabaaa"

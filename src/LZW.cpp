@@ -55,19 +55,21 @@ std::stringstream lzw_encode(const std::string_view data)
     for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
         node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
 
-    for(const auto& c: data)  // is there a problem here when c == 200?
+    for(const char& c: data)  
     {
-        auto& children = node->children;
         // see if we have c already
-        auto it = children.find(lzw_symbol_t(c));
+        auto it = node->children.find(uint8_t(c));
 
-        if(it == children.end())
+        if(it == node->children.end())
         {
             // write this code to output
             out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
             // insert 
-            it = children.emplace(c, std::make_unique<Node>(cur_key, true)).first;
-            node = prefix_tree->children.find(c)->second.get();
+            it = node->children.emplace(
+                    uint8_t(c), 
+                    std::make_unique<Node>(cur_key, true)
+            ).first;
+            node = prefix_tree->children.find(uint8_t(c))->second.get();
             cur_key++;
 
             if(cur_key == 0xFFFF)
@@ -248,7 +250,7 @@ std::stringstream lzw_decode(std::stringstream& input)
             s = table[old_code];
             s += cc;
         }
-        else
+        else        // concat symbol
         {
             s = "";
             s += table[new_code];
@@ -267,13 +269,14 @@ std::stringstream lzw_decode(std::stringstream& input)
     return out;
 }
 
+
 /*
  * lzw_decode_sv()
  * Decode from a string_view
  */
-std::stringstream lzw_decode_sv(const std::string_view data)
+std::vector<uint8_t> lzw_decode_sv(const std::string_view data)
 {
-    std::stringstream out;
+    std::vector<uint8_t> out;
 
     // First 12 characters are header 
     uint32_t offset24 = (data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0]);
@@ -306,7 +309,8 @@ std::stringstream lzw_decode_sv(const std::string_view data)
     }
     
     s += old_code;
-    out << s;
+    out.push_back(s[0]);    // this should always be a single character
+    //out << s;
 
     while(inp_pos < data.size())
     {
@@ -338,7 +342,9 @@ std::stringstream lzw_decode_sv(const std::string_view data)
         }
 
         cc = s[0];
-        out << s;
+        for(const auto& b : s)
+            out.push_back(b);
+        //out << s;
 
         std::string new_sym;
         new_sym += table[old_code];
@@ -368,8 +374,8 @@ struct ArrayNode
     std::array<std::unique_ptr<ArrayNode>, LZW_ALPHA_SIZE> children;
 
     public:
-        ArrayNode() {} 
-        ArrayNode(uint32_t v, bool l) : value(v), leaf(l) {} 
+        ArrayNode() : value(0), leaf(false), children() {}
+        ArrayNode(uint32_t v, bool l) : value(v), leaf(l), children() {} 
 };
 
 
@@ -395,20 +401,20 @@ std::stringstream lzw_array_encode(const std::string_view data)
     std::unique_ptr<ArrayNode> prefix_tree = std::make_unique<ArrayNode>();
 
     // Init the dict 
-    auto* node = prefix_tree.get();
+    ArrayNode* node = prefix_tree.get();
     for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
         node->children[cur_key] = std::make_unique<ArrayNode>(cur_key, true);
 
-    for(const auto& c : data)
+    for(const char& c : data)
     {
-         auto& children = node->children;
-         if(children[c].get() == nullptr)
+         //auto& children = node->children;
+         if(!node->children[uint8_t(c)].get())         // what is it about these -128 values that is such a problem?
          {
              out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-             children[c] = std::make_unique<ArrayNode>(cur_key, true);
+             node->children[uint8_t(c)] = std::make_unique<ArrayNode>(cur_key, true);
              cur_key++;
 
-             node = prefix_tree->children[c].get();
+             node = prefix_tree->children[uint8_t(c)].get();
 
              if(cur_key == 0xFFFF)
              {
@@ -422,7 +428,7 @@ std::stringstream lzw_array_encode(const std::string_view data)
              }
          }
          else
-             node = children[c].get();
+             node = node->children[uint8_t(c)].get();
     }
 
     out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);

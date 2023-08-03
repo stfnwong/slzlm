@@ -24,7 +24,7 @@ std::stringstream lzw_encode(const std::string_view data);
 std::stringstream lzw_decode(std::stringstream& data);
 
 // Decode from a string_view
-std::stringstream lzw_decode_sv(const std::string_view data);
+std::vector<uint8_t> lzw_decode_sv(const std::string_view data);
 
 /*
  * Encode from a std::stringstream rather than a std::string_view

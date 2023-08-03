@@ -21,6 +21,12 @@ int main(int argc, char* argv[])
         "triathlon"
     };
 
+    std::cout << "Inserting sample strings {";
+    for(const std::string& s : sample_strings)
+        std::cout << s << ",";
+    std::cout << "}" << std::endl;
+
+
     for(const std::string& s : sample_strings)
         trie.insert(s);
 
