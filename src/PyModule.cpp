@@ -78,20 +78,22 @@ std::string_view py_lzw_decode(py::bytes data)
 
 
 
-py::array_t<char> py_numpy_test(const py::ssize_t size)
+py::array_t<char> py_numpy_test(const py::array_t<char>& data)
 {
-    ///py::buffer_info info(py::buffer(data).request());
-    ///const char* data = reinterpret_cast<const char*>(info.ptr);
-    ///size_t length = static_cast<size_t>(info.length);
+    py::buffer_info info = data.request();
+    char* ptr = static_cast<char*>(info.ptr);
 
-    std::vector<char> vec(size);
-    for(unsigned i = 0; i < size; ++i)
-        vec[i] = (2 * i)  % 256;
+    // make another pointer for the output data
+    auto result = py::array_t<char>(info.size);
+    py::buffer_info res_info = result.request();
+    char* res_ptr = static_cast<char*>(res_info.ptr);
 
-    return py::array(size, vec.data());
-    //return py::array_t<double>(size);
+    for(size_t i = 0; i < info.size; ++i)
+        res_ptr[i] = (2 * ptr[i])  % 256;
 
-    //return std::vector<char>(data, data+length);
+
+    return result;
+    ///return py::array(vec.size(), vec.data());
 }
 
 
