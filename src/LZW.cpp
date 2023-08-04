@@ -100,74 +100,92 @@ std::stringstream lzw_encode(const std::string_view data)
 
 
 // Can this work if we only take one byte at a time?
-std::stringstream lzw_encode_from_stream(std::stringstream& data)
+//
+// const uint8_t* inp_data - pointer to input array
+// unsigned inp_length - length of input 
+// uint8_t* out_data - pointer to output array this must be allocated and long enough
+// 
+// return:
+//  unsigned - actual length of output array
+unsigned lzw_encode_vector(
+        const uint8_t* inp_data, 
+        unsigned inp_length, 
+        uint8_t* out_data
+        )
 {
-    std::stringstream out;
     int bytes_per_code = 2;    // minimum code size is 16-bits
-    int offset24 = 0;
-    int offset32 = 0;
-    int num_codes = 0;
+    uint32_t offset24 = 0;
+    uint32_t offset32 = 0;
     uint32_t cur_key = 0;
 
-    // Write offset data to start of stream
-    out.seekp(0);
-    // write dummy values for later 
-    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
+    unsigned out_ptr = 12;   // skip over the header section - we will fill at the end
+    unsigned inp_ptr = 0;
 
-    std::unique_ptr<Node> prefix_tree = std::make_unique<Node>();
+    // Init prefix tree and dict
+    std::unique_ptr<Node> root = std::make_unique<Node>();
 
-    // Init the dict 
-    auto* node = prefix_tree.get();
+    auto* node = root.get();
     for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
         node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
 
-    char c;
-    while(data)
+    for(inp_ptr = 0; inp_ptr < inp_length; ++inp_ptr)
     {
-        if(!data.get(c))
-            break;
-        if(data.eof() || data.fail())
-            break;
-
-        auto& children = node->children;
-
         // see if we have c already
-        auto it = children.find(lzw_symbol_t(c));
+        uint8_t c = inp_data[inp_ptr];
+        auto it = node->children.find(c);
 
-        if(it == children.end())
+        if(it == node->children.end())
         {
-            // write this code to output
-            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-            children.emplace(lzw_symbol_t(c), std::make_unique<Node>(cur_key, true));
+            // TODO: lambda?
+            for(int b = 0; b < bytes_per_code; ++b)
+            {
+                out_data[out_ptr] = (node->value >> (8*b)) & 0xFF;
+                out_ptr++;
+            }
+
+            node->children.emplace(c, std::make_unique<Node>(cur_key, true));
             // p = c
-            node = prefix_tree->children.find(lzw_symbol_t(c))->second.get();
+            node = root->children.find(c)->second.get();
             cur_key++;
 
             if(cur_key == 0xFFFF)
             {
                 bytes_per_code = 3;
-                offset24 = out.tellp();
+                offset24 = out_ptr;
             }
             if(cur_key == 0xFFFFFF)
             {
                 bytes_per_code = 4;
-                offset32 = out.tellp();
+                offset32 = out_ptr;
             }
         }
         else
             node = it->second.get();
     }
-    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
+    
+    // TODO: write this as a template?
+    // TODO: write a lambda to get the n-th byte from some n>1 byte word?
+    //for(int b = bytes_per_code-1; b > 0; --b)
+    //{
+    //    out_data[out_ptr] = (node->value >> (8 * (4-b))) & 0xFF;  // highest -> lowest
+    //    out_ptr++;
+    //}
 
-    // go back and write the offsets
-    out.seekp(0, std::ios::beg);
-    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
+    for(int b = 0; b < bytes_per_code; ++b)
+    {
+        out_data[out_ptr] = (node->value >> (8*b)) & 0xFF;
+        out_ptr++;
+    }
 
-    return out;
+    // Write header 
+    for(int i = 0; i < 4; ++i)
+        out_data[i] = (offset24 >> (8*i)) & 0xFF;       // lowest -> highest
+    for(int i = 4; i < 8; ++i)
+        out_data[i] = (offset32 >> (8*i)) & 0xFF;       // lowest -> highest
+    for(int i = 8; i < 12; ++i)
+        out_data[i] = (cur_key >> (8*i)) & 0xFF;       // lowest -> highest
+
+    return out_ptr;
 }
 
 

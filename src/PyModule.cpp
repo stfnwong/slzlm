@@ -84,16 +84,14 @@ py::array_t<char> py_numpy_test(const py::array_t<char>& data)
     char* ptr = static_cast<char*>(info.ptr);
 
     // make another pointer for the output data
-    auto result = py::array_t<char>(info.size);
+    py::array_t<char> result = py::array_t<char>(info.size);
     py::buffer_info res_info = result.request();
     char* res_ptr = static_cast<char*>(res_info.ptr);
 
-    for(size_t i = 0; i < info.size; ++i)
+    for(ssize_t i = 0; i < info.size; ++i)
         res_ptr[i] = (2 * ptr[i])  % 256;
 
-
     return result;
-    ///return py::array(vec.size(), vec.data());
 }
 
 

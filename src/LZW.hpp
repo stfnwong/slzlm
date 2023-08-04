@@ -27,9 +27,10 @@ std::stringstream lzw_decode(std::stringstream& data);
 std::vector<uint8_t> lzw_decode_sv(const std::string_view data);
 
 /*
- * Encode from a std::stringstream rather than a std::string_view
+ * Encode from a C-style array
  */
-std::stringstream lzw_encode_from_stream(std::stringstream& data);
+unsigned lzw_encode_vector(const uint8_t* inp_data, unsigned inp_length, uint8_t* out_data);
+
 
 
 /*
@@ -55,6 +56,7 @@ class LZWEncoder
             LZWNode() : value(0), leaf(false), children() {} 
             LZWNode(uint32_t v, bool l) : value(v), leaf(l), children() {} 
     };
+
     uint32_t cur_key;
     std::unique_ptr<LZWNode> root;
     LZWNode* cur_node;

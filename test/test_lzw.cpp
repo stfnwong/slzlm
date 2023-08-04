@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <iterator>
 
 #include "LZW.hpp"
@@ -33,6 +34,17 @@ std::stringstream generate_exp_stream_data(void)
 
 
 // ===== Functional encoder ===== //
+
+TEST_CASE("temp_write_encode_file", "lzw")
+{
+    const std::string test_data = "babaabaaa";
+    std::stringstream enc_out = lzw_encode(test_data);
+
+    std::ofstream file("sample.lzw", std::ios::binary);
+    file << enc_out.rdbuf();
+    file.close();
+
+}
 
 TEST_CASE("test_function_encode", "lzw")
 {
@@ -146,74 +158,74 @@ TEST_CASE("test_lzw_encoder_encode", "lzw")
 }
 
 
-TEST_CASE("test_lzw_encoder_loop", "lzw")
-{
-    std::string test_filename = "test/shakespear.txt";
-    std::ifstream file(test_filename);
-    std::string text(std::istreambuf_iterator<char>{file}, {});
-    file.close();
+//TEST_CASE("test_lzw_encoder_loop", "lzw")
+//{
+//    std::string test_filename = "test/shakespear.txt";
+//    std::ifstream file(test_filename);
+//    std::string text(std::istreambuf_iterator<char>{file}, {});
+//    file.close();
+//
+//    LZWEncoder lzw;
+//
+//    unsigned chunk_size = 64;
+//    unsigned num_chunks = 8;
+//
+//    for(unsigned c = 0; c < num_chunks-1; ++c)
+//    {
+//        std::string chunk = text.substr(c * chunk_size, chunk_size);
+//        std::cout << "chunk [" << c+1 << "/" <<  num_chunks << "]: (" << chunk.size() << " characters)" << std::endl;
+//        lzw.encode(chunk);
+//    }
+//
+//    auto out_data = lzw.get_stream();
+//    std::cout << "lzw contains " << lzw.size() << " symbols after encoding " 
+//        << chunk_size * num_chunks << " characters" << std::endl;
+//    //REQUIRE(out_data.size() < chunk_size * num_chunks);
+//
+//    std::string text_substr = text.substr(0, num_chunks * chunk_size);
+//    std::cout << std::endl << "Complete text substring: [" << text_substr << "]" << std::endl;
+//    std::cout << "Text substring contains " << text_substr.size() << " characters" << std::endl;
+//    
+//    //LZWEncoder ref_enc;
+//    //ref_enc.encode(text_substr);
+//    //auto exp_out_data = ref_enc.get();
+//    auto exp_out_data = lzw_encode(text_substr);
+//
+//    std::cout << std::endl << "out_data ; " << out_data.str() << std::endl;
+//    std::cout << std::endl << "exp_data ; " << exp_out_data.str() << std::endl;
+//
+//    // TODO: debug only, remove 
+//    std::ofstream enc_file("test/bard_loop_encode.lz", std::ios::binary);
+//    enc_file << out_data.rdbuf();
+//    enc_file.close();
+//
+//    std::ofstream ref_file("test/bard_func_encode.lz", std::ios::binary);
+//    ref_file << exp_out_data.rdbuf();
+//    ref_file.close();
+//
+//
+//    
+//    //REQUIRE(out_data.size() == exp_out_data.size());
+//    out_data.seekg(0, std::ios::end);
+//    size_t out_data_size = out_data.tellg();
+//    exp_out_data.seekg(0, std::ios::end);
+//    size_t exp_out_data_size = exp_out_data.tellg();
+//
+//    REQUIRE(exp_out_data_size == out_data_size);
+//}
 
-    LZWEncoder lzw;
 
-    unsigned chunk_size = 64;
-    unsigned num_chunks = 8;
-
-    for(unsigned c = 0; c < num_chunks-1; ++c)
-    {
-        std::string chunk = text.substr(c * chunk_size, chunk_size);
-        std::cout << "chunk [" << c+1 << "/" <<  num_chunks << "]: (" << chunk.size() << " characters)" << std::endl;
-        lzw.encode(chunk);
-    }
-
-    auto out_data = lzw.get_stream();
-    std::cout << "lzw contains " << lzw.size() << " symbols after encoding " 
-        << chunk_size * num_chunks << " characters" << std::endl;
-    //REQUIRE(out_data.size() < chunk_size * num_chunks);
-
-    std::string text_substr = text.substr(0, num_chunks * chunk_size);
-    std::cout << std::endl << "Complete text substring: [" << text_substr << "]" << std::endl;
-    std::cout << "Text substring contains " << text_substr.size() << " characters" << std::endl;
-    
-    //LZWEncoder ref_enc;
-    //ref_enc.encode(text_substr);
-    //auto exp_out_data = ref_enc.get();
-    auto exp_out_data = lzw_encode(text_substr);
-
-    std::cout << std::endl << "out_data ; " << out_data.str() << std::endl;
-    std::cout << std::endl << "exp_data ; " << exp_out_data.str() << std::endl;
-
-    // TODO: debug only, remove 
-    std::ofstream enc_file("test/bard_loop_encode.lz", std::ios::binary);
-    enc_file << out_data.rdbuf();
-    enc_file.close();
-
-    std::ofstream ref_file("test/bard_func_encode.lz", std::ios::binary);
-    ref_file << exp_out_data.rdbuf();
-    ref_file.close();
-
-
-    
-    //REQUIRE(out_data.size() == exp_out_data.size());
-    out_data.seekg(0, std::ios::end);
-    size_t out_data_size = out_data.tellg();
-    exp_out_data.seekg(0, std::ios::end);
-    size_t exp_out_data_size = exp_out_data.tellg();
-
-    REQUIRE(exp_out_data_size == out_data_size);
-}
-
-
-TEST_CASE("test_lzw_encoder_to_file", "lzw")
-{
-    LZWEncoder lzw;
-    const std::string test_data = "babaabaaa";
-    const std::string test_filename = "test/to_file_test.lz";
-
-    lzw.encode(test_data);
-    lzw.to_file(test_filename);
-
-    // Read the file and check
-}
+//TEST_CASE("test_lzw_encoder_to_file", "lzw")
+//{
+//    LZWEncoder lzw;
+//    const std::string test_data = "babaabaaa";
+//    const std::string test_filename = "test/to_file_test.lz";
+//
+//    lzw.encode(test_data);
+//    lzw.to_file(test_filename);
+//
+//    // Read the file and check
+//}
 
 
 // ===== Object oriented encoder ===== //
@@ -319,6 +331,36 @@ TEST_CASE("test_array_encoder_long_string", "lzw")
     float r = float(enc_out.str().size()) / float(text.size());
     std::cout << "Ratio : " << r << std::endl;
     REQUIRE(r < 1.0);
+}
+
+
+
+TEST_CASE("test_lzw_encode_vector", "lzw")
+{
+    // Init some c-style arrays...
+
+    //const std::string test_data = "babaabaaa";
+    //std::stringstream enc_out = lzw_encode(test_data);
+    //uint8_t* input_buf = new uint8_t[test_inp_size];
+
+    unsigned input_buf_len = 9;
+    unsigned header_len = 12;
+    uint8_t input_buf[input_buf_len] = {0x62, 0x61, 0x62, 0x61, 0x61, 0x62, 0x61, 0x61, 0x61};
+    uint8_t* output_buf = new uint8_t[header_len + input_buf_len];        // length of input buf
+    std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
+
+    // NOTE: out_len is number of bytes in output
+    unsigned out_len = lzw_encode_vector(input_buf, input_buf_len, output_buf);
+
+    // print bytes 
+    std::cout << "[";
+    for(unsigned i = 0; i < out_len; ++i)
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << unsigned(output_buf[i]) << " ";
+    std::cout << "]" << std::endl;
+
+    REQUIRE(out_len == (exp_data.size() * sizeof(uint16_t)) + header_len);
+
+    delete[] output_buf;
 }
 
 

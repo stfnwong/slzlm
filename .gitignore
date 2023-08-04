@@ -24,6 +24,7 @@ __pycache__
 
 # Ignore any compressed outputs 
 *.lz
+*.lzw
 
 # Ignore callgrind output
 callgrind*
