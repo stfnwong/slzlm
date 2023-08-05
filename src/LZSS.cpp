@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <utility>
 
 #include "LZSS.hpp"
 
@@ -154,6 +155,113 @@ void BitStream::to_file(const std::string& filename)
 }
 
 
+
+
+// Alternative implementation of BitStream using a vector
+void VectorBitStream::init(void)
+{
+    this->rd_mask = 0x80;
+    this->wr_mask = 0x80;
+    this->rd_buf = 0;
+    this->wr_buf = 0;
+    this->rd_ptr = 0;
+    this->data.clear();
+}
+
+
+
+void VectorBitStream::write_bit(uint8_t bit)
+{
+    if(this->wr_mask == 0)
+    {
+        this->data.push_back(this->wr_buf);
+        this->wr_buf = 0;
+        this->wr_mask = 0x80;
+    }
+}
+
+void VectorBitStream::write_bits(uint32_t word, int count)
+{
+    uint32_t mask, rv;
+    char c;
+
+    mask = 1L << (count - 1);
+    rv = 0;
+
+    while(mask != 0)
+    {
+        if(mask & word)
+            this->wr_buf = (this->wr_buf | this->wr_mask);
+        this->wr_mask = this->wr_mask >> 1;
+
+        if(this->wr_mask == 0)
+        {
+            this->data.push_back(this->wr_buf);
+            this->wr_buf = 0;
+            this->wr_mask = 0x80;
+        }
+        mask = mask >> 1;
+    }
+}
+
+
+uint8_t VectorBitStream::read_bit(void)
+{
+    int value;
+
+    if(this->rd_mask == 0x80)
+    {
+        this->rd_buf = this->data[this->rd_ptr];
+        this->rd_ptr++;
+    }
+
+    value = this->rd_buf & this->rd_mask;
+    this->rd_mask = this->rd_mask >> 1;
+
+    if(this->rd_mask == 0)
+        this->rd_mask = 0x80;
+
+    return value ? 1 : 0;
+}
+
+
+uint32_t VectorBitStream::read_bits(int count)
+{
+    uint32_t mask, rv;
+
+    mask = 1L << (count - 1);
+    rv = 0;
+
+    while(mask != 0)
+    {
+        if(this->rd_mask == 0x80)
+        {
+            this->rd_buf = this->data[this->rd_ptr];
+            this->rd_ptr++;
+        }
+
+        if(this->rd_buf & this->rd_mask)
+            rv = rv | mask;
+        mask = mask >> 1;
+        this->rd_mask = this->rd_mask >> 1;
+
+        if(this->rd_mask == 0)
+            this->rd_mask = 0x80;
+    }
+
+    return rv;
+}
+
+
+
+unsigned VectorBitStream::length(void) const
+{
+    return this->data.size();
+}
+
+
+// LZ tree stuff
+
 int find_next_smallest_node(LZSSTree& tree, int node)
 {
     int next = tree[node].smaller;
@@ -167,10 +275,12 @@ int find_next_smallest_node(LZSSTree& tree, int node)
 void contract_node(LZSSTree& tree, int old_node, int new_node)
 {
     tree[old_node].parent = tree[new_node].parent;
+
     if(tree[tree[old_node].parent].larger == old_node)
         tree[tree[old_node].parent].larger = new_node;
     else
         tree[tree[old_node].parent].smaller = new_node;
+
     tree[old_node].parent = TREE_UNUSED;
 }
 
@@ -219,16 +329,18 @@ void delete_string(LZSSTree& tree, int p)
 
 // More from the book
 // This function implements most of the logic of the LZSS encoder
-int add_string(
+// 
+// Return type is  {match_pos, match_length}
+std::pair<int, int> add_string(
         LZSSTree& tree,
         LZSSWindow& window,
-        int new_node, 
-        int* match_position
+        int new_node
 )
 {
-    int child; // I don't get why this is a pointer in the original implementation?
+    int child; 
     int test_node;
-    int match_length;
+    int match_length = 0;
+    int match_pos = 0;
     // comp encodes comparison of new_node and test_node,
     // < 1 if new_node < test_node, 
     // 0 if new_node == test_node
@@ -236,12 +348,10 @@ int add_string(
     int comp;          
 
     if(new_node == END_OF_STREAM)
-        return 0;
+        return {match_pos, match_length};
 
     test_node = tree[TREE_ROOT].larger;
-    match_length = 0;
 
-    // TODO: doesn't terminate
     for(;;)
     {
         // Find the number of characters that match
@@ -256,12 +366,12 @@ int add_string(
         if(i >= match_length)
         {
             match_length = i;
-            *match_position = test_node;
+            match_pos = test_node;
 
             if(match_length >= LOOK_AHEAD_SIZE)
             {
                 replace_node(tree, test_node, new_node);
-                return match_length;
+                return {match_pos, match_length};
             }
         }
 
@@ -277,7 +387,7 @@ int add_string(
             tree[new_node].larger = TREE_UNUSED;
             tree[new_node].smaller = TREE_UNUSED;
 
-            return match_length;
+            return {match_pos, match_length};
         }
         test_node = child;
     }
@@ -366,7 +476,11 @@ std::stringstream lzss_encode(const std::string_view data)
             cur_pos = mod_window(cur_pos+1);        // basically window position
 
             if(look_ahead_bytes)
-                match_length = add_string(tree, window, cur_pos, &match_pos);
+            {
+                auto ret = add_string(tree, window, cur_pos);
+                match_pos = ret.first;
+                match_length = ret.second;
+            }
         }
     }
 

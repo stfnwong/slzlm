@@ -127,8 +127,6 @@ TEST_CASE("test_bitstream_read_bit", "lszz")
     for(unsigned i = 0; i < num_bits; ++i)
         test_stream.write_bit(i % 2 == 0);
 
-    test_stream.to_file("read_bit.test");
-
     // Bitstream handles the underlying stream, we can just consume one bit at a time
     REQUIRE(test_stream.read_bit() == 1);
     REQUIRE(test_stream.read_bit() == 0);
@@ -145,6 +143,50 @@ TEST_CASE("test_bitstream_read_bit", "lszz")
     more_bits = test_stream.read_bits(12);
     REQUIRE(more_bits == 0xAAA);
 }
+
+
+// Vector bitstream 
+// These should get re-implemented as subclasses of some abstract BitStream class
+TEST_CASE("test_vector_bitstream_write_bits", "lzss")
+{
+    VectorBitStream test_stream;
+    uint32_t code = 0xFFFF8080;
+    uint32_t out_word;
+
+    // Write 8 bits of this code
+    test_stream.write_bits(code, 8);
+    REQUIRE(test_stream.length() == 1);
+
+    //test_stream.to_file("str8.out");
+    out_word = test_stream.read_bits(8);
+    REQUIRE(out_word == 0x80);
+
+    // Reset stream and write 16 codes
+    test_stream.init();
+    REQUIRE(test_stream.length() == 0);
+
+    test_stream.write_bits(code, 16);
+    REQUIRE(test_stream.length() == 2);
+
+    for(unsigned i = 0; i < test_stream.length(); ++i)
+        REQUIRE(test_stream.data[i] == 0x80);
+
+    test_stream.init();
+    REQUIRE(test_stream.length() == 0);
+
+    test_stream.write_bits(code, 32);
+
+    // Note: from most significant to least significant
+    std::vector<uint8_t> exp_vec = {0xFF, 0xFF, 0x80, 0x80};
+
+    REQUIRE(test_stream.length() == exp_vec.size());
+
+    for(unsigned i = 0; i < test_stream.length(); ++i)
+        REQUIRE(test_stream.data[i] == exp_vec[i]);
+}
+
+
+
 
 /*
  * Tree manipulation
@@ -175,25 +217,27 @@ TEST_CASE("test_bitstream_read_bit", "lszz")
  */
 TEST_CASE("test_lzss_encode", "lzss")
 {
-    //const std::string input = "babaabaaa";
+    // TODO: walk through the algorithm step by step and create a more detailed test case
     const std::string input = "The Cruelty of Really Tea";
 
-    auto enc_out = lzss_encode(input);
+    std::stringstream enc_out = lzss_encode(input);
     enc_out.seekg(0, std::ios::end);
-    std::cout << "End of stream at " << enc_out.tellg() << std::endl;
     enc_out.seekg(0, std::ios::beg);
 
     std::vector<uint8_t> enc_byte_vec = stream_to_vec<uint8_t>(enc_out);
-    std::cout << "enc_out length: " << enc_byte_vec.size() << " bytes" << std::endl;
-
-    std::cout << "[";
-    for(unsigned i = 0; i < enc_byte_vec.size(); ++i)
-        std::cout << enc_byte_vec[i] << " ";
-    std::cout << "]" << std::endl;;
-
-    //std::cout << "enc_out: " << enc_out.str() << std::endl;
-    std::cout << "Input was [" << input << "]" << std::endl;
-    std::cout << "Input size was [" << input.size() << "] characters." << std::endl;
 
     REQUIRE(enc_byte_vec.size() < input.size());
 }
+
+
+//TEST_CASE("test_lzss_decode", "lzss")
+//{
+//    const std::string input = "The Cruelty of Really Tea";
+//
+//    // Encode a string 
+//    std::stringstream enc_out = lzss_encode(input);
+//
+//    std::stringstream dec_out = lzss_decode(enc_out);
+//
+//
+//}

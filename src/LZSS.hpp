@@ -44,7 +44,7 @@ struct BitStream
     uint8_t rd_mask;
     int wr_buf;
     int rd_buf;
-    std::stringstream& ss;
+    std::stringstream& ss; // TODO: would be nice if this could also be string_view...
 
     public:
         BitStream(std::stringstream& inp_stream) : 
@@ -52,7 +52,7 @@ struct BitStream
             wr_buf(0), rd_buf(0), ss(inp_stream) {}
 
         void     write_bit(uint8_t bit);
-        void     write_bits(uint32_t code, int count);
+        void     write_bits(uint32_t word, int count);
         uint8_t  read_bit(void);
         uint32_t read_bits(int count);
         unsigned length(void);
@@ -60,6 +60,25 @@ struct BitStream
         void     to_file(const std::string& filename);
 };
 
+
+// TODO: fold this into a single bitstream that takes various kinds of underlying buffers
+struct VectorBitStream
+{
+    uint8_t wr_mask, rd_mask;
+    int wr_buf, rd_buf;
+    unsigned rd_ptr;
+    std::vector<uint8_t> data;
+
+    public:
+        VectorBitStream() : wr_mask(0x80), rd_mask(0x80), wr_buf(0), rd_buf(0), rd_ptr(0) {}
+
+        void     init(void);
+        void     write_bit(uint8_t bit);
+        void     write_bits(uint32_t word, int count);
+        uint8_t  read_bit(void);
+        uint32_t read_bits(int count);
+        unsigned length(void) const;
+};
 
 
 /*
@@ -85,7 +104,7 @@ using LZSSWindow = std::array<char, WINDOW_SIZE>;
 int  find_next_smallest_node(LZSSTree& tree, int node);
 void contract_node(LZSSTree& tree, int old_node, int new_node);
 void replace_node(LZSSTree& tree, int old_node, int new_node);
-int  add_string(LZSSTree& tree, LZSSWindow& window, int new_node, int* match_position);
+std::pair<int, int>  add_string(LZSSTree& tree, LZSSWindow& window, int new_node);
 void delete_string(LZSSTree& tree, int p);
 void init_tree(LZSSTree& tree, int r);
 
