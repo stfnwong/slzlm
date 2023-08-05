@@ -35,17 +35,6 @@ std::stringstream generate_exp_stream_data(void)
 
 // ===== Functional encoder ===== //
 
-TEST_CASE("temp_write_encode_file", "lzw")
-{
-    const std::string test_data = "babaabaaa";
-    std::stringstream enc_out = lzw_encode(test_data);
-
-    std::ofstream file("sample.lzw", std::ios::binary);
-    file << enc_out.rdbuf();
-    file.close();
-
-}
-
 TEST_CASE("test_function_encode", "lzw")
 {
     const std::string test_data = "babaabaaa";
@@ -61,7 +50,7 @@ TEST_CASE("test_function_encode", "lzw")
 }
 
 
-TEST_CASE("test_encode_long_string", "lzw")
+TEST_CASE("test_function_encode_long_string", "lzw")
 {
     std::string test_filename = "test/shakespear.txt";
     std::ifstream file(test_filename);

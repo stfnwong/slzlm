@@ -1,5 +1,8 @@
 # Shit LZ-based Langauge Models
 
+## THIS BRANCH `[lzw-multi-impl]`
+This branch should not be used for anything. Its just a dead-end branch to dump the various implementations I tried for LZW. The variations are more to do with what input types are accepted or produced (eg: encoding from a `std::stringstream` rather than a variation in algorithm implementation. The branch is for posterity in case I want to grab the source for those implementations at some future time. 
+
 
 So this [gzip thing](https://aclanthology.org/2023.findings-acl.426/) got in the news lately and I thought it would be interesting to write an LZ compressor and decompressor.
 
