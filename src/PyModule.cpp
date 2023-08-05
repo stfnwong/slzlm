@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 
+//#include <iostream>
 
 #include "Trie.hpp"
 #include "LZW.hpp"
@@ -22,20 +23,31 @@ namespace py = pybind11;
  * am just experimenting with different things to see what happens. Ideally we don't 
  * copy any of the input bytes.
  */
-std::string py_lzw_encode(const std::string_view data)
+py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
 {
-    //py::buffer_info info(py::buffer(data).request());
-    //const char* buf = reinterpret_cast<const char*>(info.ptr);
-    //size_t length = static_cast<size_t>(info.size);
-    //std::string_view s(buf, length);
+    py::buffer_info info = data.request();
+    const uint8_t* inp_data_ptr = static_cast<const uint8_t*>(info.ptr);
+    unsigned inp_data_size = info.size;
 
-    //auto rv = lzw_encode(s);
-    //return std::string_view(
-    //        reinterpret_cast<char*>(rv.data()),
-    //        rv.size()
-    //);
+    // make another pointer for the output data
+    py::array_t<uint8_t> out_data = py::array_t<uint8_t>(info.size);
+    py::buffer_info out_info = out_data.request();
+    uint8_t* out_data_ptr = static_cast<uint8_t*>(out_info.ptr);
 
-    return py::bytes(lzw_encode(data).str());
+    unsigned out_len = lzw_encode_vector(inp_data_ptr, inp_data_size, out_data_ptr);
+
+    // TODO: debug only
+    //std::cout << "[";
+    //for(unsigned i = 0; i < out_len; ++i)
+    //    std::cout << std::dec << unsigned(out_data_ptr[i]) << " ";
+    //std::cout << "]" << std::endl;
+
+    // This is now a copy of a copy....?
+    return py::array_t<uint8_t>(
+            {int(out_len)},      // (size, DIM)
+            //{1, 1},                 // (DIM * 8, 8)   (strides)
+            out_data_ptr
+    );
 }
 
 

@@ -1,5 +1,6 @@
 # Test that we can use the python interface to LZW
 
+import numpy as np
 from slz import (
     lzw_encode,
     lzw_decode,
@@ -14,7 +15,9 @@ exp_int_seq = [0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0, 98, 0, 97, 0, 0, 1, 1, 1, 97,
 
 def test_lzw_encode():
     test_input = "babaabaaa"
-    encode_out = lzw_encode(test_input.encode("utf-8")).encode("utf-8")
+    inp = np.fromstring(test_input, dtype="uint8")
+    from pudb import set_trace; set_trace()
+    encode_out = lzw_encode(inp)
 
     assert len(encode_out) == len(exp_int_seq)
 
@@ -38,7 +41,7 @@ def test_lzw_large_text():
         text = fp.read()
 
     # TODO: still have problems with bytes... do I switch to numpy arrays?
-    from pudb import set_trace; set_trace()
+    #from pudb import set_trace; set_trace()
     enc_text = lzw_encode(text)
     dec_text = lzw_decode(enc_text)
 

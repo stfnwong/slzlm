@@ -163,14 +163,6 @@ unsigned lzw_encode_vector(
             node = it->second.get();
     }
     
-    // TODO: write this as a template?
-    // TODO: write a lambda to get the n-th byte from some n>1 byte word?
-    //for(int b = bytes_per_code-1; b > 0; --b)
-    //{
-    //    out_data[out_ptr] = (node->value >> (8 * (4-b))) & 0xFF;  // highest -> lowest
-    //    out_ptr++;
-    //}
-
     for(int b = 0; b < bytes_per_code; ++b)
     {
         out_data[out_ptr] = (node->value >> (8*b)) & 0xFF;
@@ -187,6 +179,9 @@ unsigned lzw_encode_vector(
 
     return out_ptr;
 }
+
+
+//void lzw_vector_decode(const uint8_t* inp_data, unsigned inp_length, 
 
 
 
