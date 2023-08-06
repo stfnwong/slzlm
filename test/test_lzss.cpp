@@ -19,13 +19,10 @@
 /*
  * Bitstream
  */
-TEST_CASE("test_bitstream_write_bit", "lzss")
+TEST_CASE("test_stringbitstream_write_bit", "lzss")
 {
     std::stringstream ss;
-    //StringBitStream test_stream(ss);
-
-    //BitStream<DerivedStringstreamBitStream> test_stream(ss);
-    DerivedStringstreamBitStream test_stream(ss);
+    StringBitStream test_stream(ss);
 
     unsigned num_bits = 32;
     for(unsigned i = 0; i < num_bits; ++i)
@@ -43,7 +40,7 @@ TEST_CASE("test_bitstream_write_bit", "lzss")
 }
 
 
-TEST_CASE("test_bitstream_write_bit_pattern", "lzss")
+TEST_CASE("test_stringbitstream_write_bit_pattern", "lzss")
 {
     std::stringstream ss;
     StringBitStream test_stream(ss);
@@ -67,7 +64,7 @@ TEST_CASE("test_bitstream_write_bit_pattern", "lzss")
 }
 
 
-TEST_CASE("test_bitstream_write_bits", "lzss")
+TEST_CASE("test_stringbitstream_write_bits", "lzss")
 {
     std::stringstream ss;
     StringBitStream test_stream(ss);
@@ -119,7 +116,7 @@ TEST_CASE("test_bitstream_write_bits", "lzss")
 }
 
 
-TEST_CASE("test_bitstream_read_bit", "lszz")
+TEST_CASE("test_stringbitstream_read_bit", "lszz")
 {
     // Test reading single bits 
 
@@ -153,7 +150,7 @@ TEST_CASE("test_bitstream_read_bit", "lszz")
 TEST_CASE("test_vector_bitstream_write_bits", "lzss")
 {
     //VectorBitStream test_stream;
-    DerivedVectorBitStream test_stream;
+    VectorBitStream test_stream;
     uint32_t code = 0xFFFF8080;
     uint32_t out_word;
 
