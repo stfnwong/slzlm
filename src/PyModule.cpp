@@ -6,7 +6,8 @@
 #include <sstream>
 #include <string>
 
-//#include <iostream>
+// This again....
+#include <iostream>
 
 #include "Trie.hpp"
 #include "LZW.hpp"
@@ -36,16 +37,14 @@ py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
 
     unsigned out_len = lzw_encode_vector(inp_data_ptr, inp_data_size, out_data_ptr);
 
-    // TODO: debug only
-    //std::cout << "[";
-    //for(unsigned i = 0; i < out_len; ++i)
-    //    std::cout << std::dec << unsigned(out_data_ptr[i]) << " ";
-    //std::cout << "]" << std::endl;
+    std::cout << "[" << __func__ << "] -> [";
+    for(unsigned i = 0; i < out_len; ++i)
+        std::cout << std::dec << unsigned(out_data_ptr[i]) << " ";
+    std::cout << "]" << std::endl;
 
-    // This is now a copy of a copy....?
+    // TODO: check how many copies there are...
     return py::array_t<uint8_t>(
-            {int(out_len)},      // (size, DIM)
-            //{1, 1},                 // (DIM * 8, 8)   (strides)
+            int(out_len),
             out_data_ptr
     );
 }

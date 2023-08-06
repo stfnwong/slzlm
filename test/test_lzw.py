@@ -15,10 +15,13 @@ exp_int_seq = [0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0, 98, 0, 97, 0, 0, 1, 1, 1, 97,
 
 def test_lzw_encode():
     test_input = "babaabaaa"
-    inp = np.fromstring(test_input, dtype="uint8")
-    from pudb import set_trace; set_trace()
+    inp = np.frombuffer(test_input.encode("latin-1"), dtype="uint8")
+    #from pudb import set_trace; set_trace()
     encode_out = lzw_encode(inp)
 
+    print(encode_out)
+
+    # NOTE: cur_key should be [05, 01, 00, 00] I think...
     assert len(encode_out) == len(exp_int_seq)
 
     for enc, i in zip(encode_out, exp_int_seq):

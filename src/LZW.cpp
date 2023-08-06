@@ -163,6 +163,7 @@ unsigned lzw_encode_vector(
             node = it->second.get();
     }
     
+    // Write the last code
     for(int b = 0; b < bytes_per_code; ++b)
     {
         out_data[out_ptr] = (node->value >> (8*b)) & 0xFF;
@@ -172,16 +173,122 @@ unsigned lzw_encode_vector(
     // Write header 
     for(int i = 0; i < 4; ++i)
         out_data[i] = (offset24 >> (8*i)) & 0xFF;       // lowest -> highest
-    for(int i = 4; i < 8; ++i)
-        out_data[i] = (offset32 >> (8*i)) & 0xFF;       // lowest -> highest
-    for(int i = 8; i < 12; ++i)
-        out_data[i] = (cur_key >> (8*i)) & 0xFF;       // lowest -> highest
+    for(int i = 0; i < 4; ++i)
+        out_data[i+4] = (offset32 >> (8*i)) & 0xFF;       // lowest -> highest
+    for(int i = 0; i < 4; ++i)
+        out_data[i+8] = (cur_key >> (8*i)) & 0xFF;       // lowest -> highest
 
     return out_ptr;
 }
 
 
-//void lzw_vector_decode(const uint8_t* inp_data, unsigned inp_length, 
+// As with encode, we expect inp_data and out_data to be allocated.
+std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_length)
+{
+    std::vector<uint8_t> out;
+
+    unsigned inp_ptr;
+
+    // Reader header info 
+    uint32_t offset24 = 0;
+    uint32_t offset32 = 0;
+    uint32_t num_codes = 0;
+
+
+    for(unsigned i = 0; i < 4; ++i)
+        offset24 = offset24 | (inp_data[i] << (8*i));
+    for(unsigned i = 0; i < 4; ++i)
+        offset32 = offset32 | (inp_data[i+4] << (8*i));
+    for(unsigned i = 0; i < 4; ++i)
+        num_codes = num_codes | (inp_data[i+8] << (8*i));
+
+    // TODO: debug, remove
+    std::cout << "[" << __func__ << "] offset24  : " << offset24 << std::endl;
+    std::cout << "[" << __func__ << "] offset32  : " << offset32 << std::endl;
+    std::cout << "[" << __func__ << "] num_codes : " << num_codes << std::endl;
+    
+    // Create symbol table
+    //using table_t = std::pair<uint32_t, uint8_t>;
+    std::vector<std::string> table(LZW_ALPHA_SIZE);
+    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
+        table[i] += i;
+
+    // TODO: try using this instead of std::string
+    //std::vector<uint8_t> code_buf(8);
+    //unsigned code_buf_ptr = 0;
+
+    int bytes_per_code = 2;
+    unsigned old_code = 0;
+    unsigned new_code = 0;
+    uint8_t cc = 0;
+
+    uint8_t cbuf;
+    std::string s;
+
+    // Read the first code
+    inp_ptr = 12;
+    for(int i = 0; i < bytes_per_code; ++i)
+    {
+        cbuf = inp_data[inp_ptr];
+        inp_ptr++;
+        old_code = old_code | (cbuf << (8 * i));
+    }
+
+    s += old_code;
+    out.push_back(old_code);
+
+    //code_buf[code_buf_ptr] = old_code;  // use this for s rather than a string
+    //out.push_back(old_code);
+
+    while(inp_ptr < inp_length)
+    {
+        if(inp_ptr == offset24)
+            bytes_per_code = 3;
+        if(inp_ptr == offset32)
+            bytes_per_code = 4;
+
+        new_code = 0;
+        for(int i = 0; i < bytes_per_code; ++i)
+        {
+            cbuf = inp_data[inp_ptr];
+            inp_ptr++;
+            if(inp_ptr > inp_length)
+                break;
+
+            new_code = new_code | (cbuf << (8*i));
+        }
+
+        // Add unseen codes to table 
+        if(new_code >= table.size())
+        {
+            s = table[old_code];
+            s += cc;
+        }
+        else
+        {
+            s = "";
+            s += table[new_code];
+        }
+
+        cc = s[0];
+        // write s to output
+        for(const auto& e : s)
+            out.push_back(e);
+
+        std::string new_sym;
+        new_sym += table[old_code];
+        new_sym += cc;
+
+        std::cout << "[" << __func__ << "] s: " << s << std::endl;
+        std::cout << "[" << __func__ << "] cc: " << cc << std::endl;
+        std::cout << "[" << __func__ << "] new_sym: " << new_sym << std::endl;
+
+        table.push_back(new_sym);
+        old_code = new_code;
+    }
+
+    return out;
+}
 
 
 
@@ -215,9 +322,8 @@ std::stringstream lzw_decode(std::stringstream& input)
     }
 
 
-    std::vector<std::string> table(LZW_ALPHA_SIZE);
-
     // Create symbol table
+    std::vector<std::string> table(LZW_ALPHA_SIZE);
     for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
         table[i] += i;
 
@@ -272,7 +378,7 @@ std::stringstream lzw_decode(std::stringstream& input)
         out << s;
 
         std::string new_sym;
-        new_sym += table[old_code];
+        new_sym += table[old_code];     // need to get each byte of this out...
         new_sym += cc;
 
         table.push_back(new_sym);

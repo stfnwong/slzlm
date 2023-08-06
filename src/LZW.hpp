@@ -13,6 +13,8 @@
 #include <vector>
 #include <sstream>
 
+// TODO: debug only
+#include <iostream>
 
 
 using lzw_symbol_t = uint8_t;
@@ -29,8 +31,10 @@ std::vector<uint8_t> lzw_decode_sv(const std::string_view data);
 /*
  * Encode from a C-style array
  */
+// TODO: change these names...
 unsigned lzw_encode_vector(const uint8_t* inp_data, unsigned inp_length, uint8_t* out_data);
 
+std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_length);
 
 
 /*

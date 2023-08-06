@@ -35,17 +35,6 @@ std::stringstream generate_exp_stream_data(void)
 
 // ===== Functional encoder ===== //
 
-TEST_CASE("temp_write_encode_file", "lzw")
-{
-    const std::string test_data = "babaabaaa";
-    std::stringstream enc_out = lzw_encode(test_data);
-
-    std::ofstream file("sample.lzw", std::ios::binary);
-    file << enc_out.rdbuf();
-    file.close();
-
-}
-
 TEST_CASE("test_function_encode", "lzw")
 {
     const std::string test_data = "babaabaaa";
@@ -215,19 +204,6 @@ TEST_CASE("test_lzw_encoder_encode", "lzw")
 //}
 
 
-//TEST_CASE("test_lzw_encoder_to_file", "lzw")
-//{
-//    LZWEncoder lzw;
-//    const std::string test_data = "babaabaaa";
-//    const std::string test_filename = "test/to_file_test.lz";
-//
-//    lzw.encode(test_data);
-//    lzw.to_file(test_filename);
-//
-//    // Read the file and check
-//}
-
-
 // ===== Object oriented encoder ===== //
 
 TEST_CASE("test_lzw_decoder_count", "lzw")
@@ -325,11 +301,13 @@ TEST_CASE("test_array_encoder_long_string", "lzw")
     std::stringstream enc_out = lzw_array_encode(text);
 
     REQUIRE(enc_out.str().size() < text.size());
-    //std::cout << "enc_out: " << enc_out.str() << std::endl << std::endl;
+
     std::cout << "text length    : " <<  text.size() << " characters" << std::endl;
     std::cout << "encoded length : " << enc_out.str().size() << " characters" << std::endl;
+
     float r = float(enc_out.str().size()) / float(text.size());
     std::cout << "Ratio : " << r << std::endl;
+
     REQUIRE(r < 1.0);
 }
 
@@ -339,30 +317,50 @@ TEST_CASE("test_lzw_encode_vector", "lzw")
 {
     // Init some c-style arrays...
 
-    //const std::string test_data = "babaabaaa";
-    //std::stringstream enc_out = lzw_encode(test_data);
-    //uint8_t* input_buf = new uint8_t[test_inp_size];
-
     unsigned input_buf_len = 9;
     unsigned header_len = 12;
     uint8_t input_buf[input_buf_len] = {0x62, 0x61, 0x62, 0x61, 0x61, 0x62, 0x61, 0x61, 0x61};
-    uint8_t* output_buf = new uint8_t[header_len + input_buf_len];        // length of input buf
-    std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
+    uint8_t* output_buf = new uint8_t[header_len + input_buf_len];  // length of input buf
+    //std::vector<uint16_t> exp_data = {98, 97, 256, 257, 97, 260};
 
-    // NOTE: out_len is number of bytes in output
+    std::vector<uint8_t> exp_data = {
+        0x00, 0x00, 0x00, 0x00,     // offset24
+        0x00, 0x00, 0x00, 0x00,     // offset32
+        0x05, 0x01, 0x00, 0x00,     // num_codes
+        0x62, 0x00, 0x61, 0x00,
+        0x00, 0x01, 0x01, 0x01,
+        0x61, 0x00, 0x04, 0x01
+    };
+
     unsigned out_len = lzw_encode_vector(input_buf, input_buf_len, output_buf);
 
-    // print bytes 
-    std::cout << "[";
+    REQUIRE(out_len == exp_data.size());
     for(unsigned i = 0; i < out_len; ++i)
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << unsigned(output_buf[i]) << " ";
-    std::cout << "]" << std::endl;
-
-    REQUIRE(out_len == (exp_data.size() * sizeof(uint16_t)) + header_len);
+        REQUIRE(exp_data[i] == output_buf[i]);
 
     delete[] output_buf;
 }
 
+
+TEST_CASE("test_lzw_decode_vector", "lzw")
+{
+    // Create some input data
+    unsigned input_buf_len = 9;
+    unsigned header_len = 12;
+    uint8_t input_buf[input_buf_len] = {0x62, 0x61, 0x62, 0x61, 0x61, 0x62, 0x61, 0x61, 0x61};
+    uint8_t* output_buf = new uint8_t[header_len + input_buf_len];  // length of input buf
+
+
+    unsigned out_len = lzw_encode_vector(input_buf, input_buf_len, output_buf);
+
+    std::vector<uint8_t> enc_out = lzw_decode_vector(output_buf, out_len);
+
+    REQUIRE(enc_out.size() == input_buf_len);
+
+
+    delete[] output_buf;
+
+}
 
 
 //TEST_CASE("test_lzw_decoder_loop", "lzw")
