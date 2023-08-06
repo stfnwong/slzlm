@@ -36,9 +36,172 @@ constexpr const int END_OF_STREAM      = 0;
 
 
 
+template <class StreamImpl> struct BitStream
+{
+    uint8_t wr_mask;
+    uint8_t rd_mask;
+    int wr_buf;
+    int rd_buf;
+
+    private:
+        BitStream() : wr_mask(0x80), rd_mask(0x80), wr_buf(0), rd_buf(0) {}
+        friend StreamImpl;
+
+    public:
+
+        uint8_t read_bit(void)
+        {
+            uint8_t value, c;
+            
+            if(this->rd_mask == 0x80)
+                this->rd_buf = static_cast<StreamImpl*>(this)->read();
+
+            value = this->rd_buf & this->rd_mask;
+            this->rd_mask = this->rd_mask >> 1;
+
+            if(this->rd_mask == 0)
+                this->rd_mask = 0x80;
+
+            return value ? 1 : 0;
+        }
+
+        uint32_t read_bits(int count)
+        {
+            uint32_t mask, rv;
+
+            mask = 1L << (count - 1);
+            rv = 0;
+
+            while(mask != 0)
+            {
+                if(this->rd_mask == 0x80)
+                    this->rd_buf = static_cast<StreamImpl*>(this)->read();
+
+                if(this->rd_buf & this->rd_mask)
+                    rv = rv | mask;
+                mask = mask >> 1;
+                this->rd_mask = this->rd_mask >> 1;
+
+                if(this->rd_mask == 0)
+                    this->rd_mask = 0x80;
+            }
+
+            return rv;
+        }
+
+        void write_bit(uint8_t bit)
+        {
+            if(bit)
+                this->wr_buf = (this->wr_buf | this->wr_mask);
+
+            this->wr_mask = this->wr_mask >> 1;
+
+            if(this->wr_mask == 0)
+            {
+                static_cast<StreamImpl*>(this)->write(this->wr_buf);
+                this->wr_buf = 0;
+                this->wr_mask = 0x80;
+            }
+        }
+
+        void write_bits(uint32_t word, int count)
+        {
+            uint32_t mask;
+
+            mask = 1L << (count - 1);
+
+            while(mask != 0)
+            {
+                if(mask & word)
+                    this->wr_buf = (this->wr_buf | this->wr_mask);
+                this->wr_mask = this->wr_mask >> 1;
+
+                if(this->wr_mask == 0)
+                {
+                    static_cast<StreamImpl*>(this)->write(this->wr_buf);
+                    this->wr_buf = 0;
+                    this->wr_mask = 0x80;
+                }
+
+                mask = mask >> 1;
+            }
+        }
+};
+
+
+
+struct DerivedVectorBitStream : BitStream<DerivedVectorBitStream>
+{
+    unsigned rd_ptr;
+    std::vector<uint8_t> data;
+
+    public:
+        DerivedVectorBitStream() : rd_ptr(0) {} 
+
+        uint8_t read(void) {
+            this->rd_ptr++;
+            return this->data[this->rd_ptr-1];
+        }
+
+        void write(uint8_t word) {
+            this->data.push_back(word);
+        }
+
+        void init(void)
+        {
+            this->wr_mask = 0x80;
+            this->rd_mask = 0x80;
+            this->wr_buf = 0;
+            this->rd_buf = 0;
+            this->data.clear();
+        }
+
+        unsigned length(void) const {
+            return this->data.size();
+        }
+};
+
+
+struct DerivedStringstreamBitStream : BitStream<DerivedStringstreamBitStream>
+{
+    std::stringstream& ss;
+
+    public:
+        DerivedStringstreamBitStream(std::stringstream& inp_stream) : ss(inp_stream) {} 
+
+        uint8_t read(void) {
+            char c;
+            this->ss.read(&c, sizeof(uint8_t));
+            return uint8_t(c);
+        }
+
+        void write(uint8_t word) { 
+            this->ss.write(reinterpret_cast<const char*>(&word), sizeof(uint8_t));
+        }
+
+        void init(void)
+        {
+            this->wr_mask = 0x80;
+            this->rd_mask = 0x80;
+            this->wr_buf = 0;
+            this->rd_buf = 0;
+            this->ss.clear();
+            this->ss.str("");
+        }
+
+        unsigned length(void) {
+            return (unsigned) this->ss.tellp();
+        }
+
+};
+
+
+
+
+
 // Note this is almost certainly not portable
 // Once it works consider finding a serialization lib
-struct BitStream
+struct StringBitStream
 {
     uint8_t wr_mask;
     uint8_t rd_mask;
@@ -47,7 +210,7 @@ struct BitStream
     std::stringstream& ss; // TODO: would be nice if this could also be string_view...
 
     public:
-        BitStream(std::stringstream& inp_stream) : 
+        StringBitStream(std::stringstream& inp_stream) : 
             wr_mask(0x80), rd_mask(0x80), 
             wr_buf(0), rd_buf(0), ss(inp_stream) {}
 

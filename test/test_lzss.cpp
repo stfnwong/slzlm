@@ -22,7 +22,10 @@
 TEST_CASE("test_bitstream_write_bit", "lzss")
 {
     std::stringstream ss;
-    BitStream test_stream(ss);
+    //StringBitStream test_stream(ss);
+
+    //BitStream<DerivedStringstreamBitStream> test_stream(ss);
+    DerivedStringstreamBitStream test_stream(ss);
 
     unsigned num_bits = 32;
     for(unsigned i = 0; i < num_bits; ++i)
@@ -43,7 +46,7 @@ TEST_CASE("test_bitstream_write_bit", "lzss")
 TEST_CASE("test_bitstream_write_bit_pattern", "lzss")
 {
     std::stringstream ss;
-    BitStream test_stream(ss);
+    StringBitStream test_stream(ss);
 
     // Most significant to least significant
     std::vector<int> test_bit_pattern = {
@@ -67,7 +70,7 @@ TEST_CASE("test_bitstream_write_bit_pattern", "lzss")
 TEST_CASE("test_bitstream_write_bits", "lzss")
 {
     std::stringstream ss;
-    BitStream test_stream(ss);
+    StringBitStream test_stream(ss);
     uint32_t code = 0xFFFF8080;
 
     // Write 8 bits of this code
@@ -121,7 +124,7 @@ TEST_CASE("test_bitstream_read_bit", "lszz")
     // Test reading single bits 
 
     std::stringstream ss;
-    BitStream test_stream(ss);
+    StringBitStream test_stream(ss);
 
     unsigned num_bits = 32;
     for(unsigned i = 0; i < num_bits; ++i)
@@ -146,10 +149,11 @@ TEST_CASE("test_bitstream_read_bit", "lszz")
 
 
 // Vector bitstream 
-// These should get re-implemented as subclasses of some abstract BitStream class
+// These should get re-implemented as subclasses of some abstract StringBitStream class
 TEST_CASE("test_vector_bitstream_write_bits", "lzss")
 {
-    VectorBitStream test_stream;
+    //VectorBitStream test_stream;
+    DerivedVectorBitStream test_stream;
     uint32_t code = 0xFFFF8080;
     uint32_t out_word;
 

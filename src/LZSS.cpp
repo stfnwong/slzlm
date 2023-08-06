@@ -24,7 +24,7 @@ static inline int mod_window(int a)
 /*
  * Wrapper for bitstream
  */
-void BitStream::write_bit(uint8_t bit)
+void StringBitStream::write_bit(uint8_t bit)
 {
     if(bit)
         this->wr_buf = (this->wr_buf | this->wr_mask);
@@ -42,7 +42,7 @@ void BitStream::write_bit(uint8_t bit)
 /*
  * Write the lowest N bits of word
  */
-void BitStream::write_bits(uint32_t word, int N)
+void StringBitStream::write_bits(uint32_t word, int N)
 {
     uint32_t mask;
 
@@ -67,7 +67,7 @@ void BitStream::write_bits(uint32_t word, int N)
 /*
  * Read one bit from the stream
  */
-uint8_t BitStream::read_bit(void)
+uint8_t StringBitStream::read_bit(void)
 {
     int value;
     char c;
@@ -91,7 +91,7 @@ uint8_t BitStream::read_bit(void)
 }
 
 
-uint32_t BitStream::read_bits(int count)
+uint32_t StringBitStream::read_bits(int count)
 {
     uint32_t mask, rv;
     char c;
@@ -124,7 +124,7 @@ uint32_t BitStream::read_bits(int count)
 
 
 
-unsigned BitStream::length(void)
+unsigned StringBitStream::length(void)
 {
     size_t old_pos = this->ss.tellg();
     this->ss.seekg(0, std::ios::end);
@@ -135,7 +135,7 @@ unsigned BitStream::length(void)
 }
 
 
-void BitStream::init(void)
+void StringBitStream::init(void)
 {
     this->wr_mask = 0x80;
     this->rd_mask = 0x80;
@@ -146,7 +146,7 @@ void BitStream::init(void)
 }
 
 
-void BitStream::to_file(const std::string& filename)
+void StringBitStream::to_file(const std::string& filename)
 {
     std::ofstream file(filename, std::ios::binary);
     file << this->ss.rdbuf();
@@ -157,7 +157,7 @@ void BitStream::to_file(const std::string& filename)
 
 
 
-// Alternative implementation of BitStream using a vector
+// Alternative implementation of StringBitStream using a vector
 void VectorBitStream::init(void)
 {
     this->rd_mask = 0x80;
@@ -421,7 +421,7 @@ void init_tree(LZSSTree& tree, int r)
 std::stringstream lzss_encode(const std::string_view data)
 {
     std::stringstream ss;
-    BitStream out_stream(ss);
+    StringBitStream out_stream(ss);
 
     LZSSTree tree;
     LZSSWindow window;
