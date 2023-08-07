@@ -240,8 +240,6 @@ TEST_CASE("test_lzw_decoder_decode", "lzw")
 
 
 
-
-
 /*
  * Array node encoder
  */

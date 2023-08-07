@@ -6,9 +6,6 @@
 #include <sstream>
 #include <string>
 
-// This again....
-#include <iostream>
-
 #include "Trie.hpp"
 #include "LZW.hpp"
 
@@ -37,11 +34,6 @@ py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
 
     unsigned out_len = lzw_encode_vector(inp_data_ptr, inp_data_size, out_data_ptr);
 
-    std::cout << "[" << __func__ << "] -> [";
-    for(unsigned i = 0; i < out_len; ++i)
-        std::cout << std::dec << unsigned(out_data_ptr[i]) << " ";
-    std::cout << "]" << std::endl;
-
     // TODO: check how many copies there are...
     return py::array_t<uint8_t>(
             int(out_len),
@@ -50,20 +42,18 @@ py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
 }
 
 
-std::string_view py_lzw_decode(py::bytes data)
+py::array_t<uint8_t> py_lzw_decode(const py::array_t<uint8_t>& data)
 {
-    py::buffer_info info(py::buffer(data).request());
-    const char* buf = reinterpret_cast<const char*>(info.ptr);
-    size_t length = static_cast<size_t>(info.size);
-    std::string_view s(buf, length);
+    py::buffer_info info = data.request();
+    const uint8_t* inp_data_ptr = static_cast<const uint8_t*>(info.ptr);
+    unsigned inp_data_size = info.size;
 
-    auto rv = lzw_decode_sv(s);
-    return std::string_view(
-            reinterpret_cast<char*>(rv.data()),
-            rv.size()
+    std::vector<uint8_t> out_data = lzw_decode_vector(inp_data_ptr, inp_data_size);
+
+    return py::array_t<uint8_t>(
+            out_data.size(),
+            out_data.data()
     );
-    //return py::bytes(lzw_decode_sv(s));
-    //return py::bytes(lzw_decode_sv(s).str());
 }
 
 

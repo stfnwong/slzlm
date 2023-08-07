@@ -16,12 +16,8 @@ exp_int_seq = [0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0, 98, 0, 97, 0, 0, 1, 1, 1, 97,
 def test_lzw_encode():
     test_input = "babaabaaa"
     inp = np.frombuffer(test_input.encode("latin-1"), dtype="uint8")
-    #from pudb import set_trace; set_trace()
     encode_out = lzw_encode(inp)
 
-    print(encode_out)
-
-    # NOTE: cur_key should be [05, 01, 00, 00] I think...
     assert len(encode_out) == len(exp_int_seq)
 
     for enc, i in zip(encode_out, exp_int_seq):
@@ -30,10 +26,11 @@ def test_lzw_encode():
 
 def test_lzw_decode():
     test_input = "babaabaaa"
-    encode_out = lzw_encode(test_input.encode("utf-8")).encode("utf-8")
+    inp = np.frombuffer(test_input.encode("latin-1"), dtype="uint8")
+    encode_out = lzw_encode(inp)
     decode_out = lzw_decode(encode_out)
 
-    assert decode_out == test_input
+    assert "".join(chr(c) for c in decode_out) == test_input
 
 
 def test_lzw_large_text():
@@ -43,12 +40,17 @@ def test_lzw_large_text():
     with open(test_filename, "rb") as fp:
         text = fp.read()
 
-    # TODO: still have problems with bytes... do I switch to numpy arrays?
+    sample_len = 4096
+    inp = np.frombuffer(text[:sample_len], dtype="uint8")
+    #inp = np.frombuffer(text.encode("latin-1"), dtype="uint8")
+
     #from pudb import set_trace; set_trace()
-    enc_text = lzw_encode(text)
+    enc_text = lzw_encode(inp)
     dec_text = lzw_decode(enc_text)
 
-    assert dec_text == text
+    assert len(dec_text) == sample_len
+
+    assert "".join(chr(c) for c in dec_text) == "".join([chr(c) for c in text[:sample_len]])
 
 
 

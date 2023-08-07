@@ -27,8 +27,6 @@ struct Node
 };
 
 
-
-
 /*
  * Encode data to LZW stream
  */
@@ -202,26 +200,16 @@ std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_len
     for(unsigned i = 0; i < 4; ++i)
         num_codes = num_codes | (inp_data[i+8] << (8*i));
 
-    // TODO: debug, remove
-    std::cout << "[" << __func__ << "] offset24  : " << offset24 << std::endl;
-    std::cout << "[" << __func__ << "] offset32  : " << offset32 << std::endl;
-    std::cout << "[" << __func__ << "] num_codes : " << num_codes << std::endl;
-    
-    // Create symbol table
-    //using table_t = std::pair<uint32_t, uint8_t>;
+    // Create symbol table 
+    // TODO: do I want to try and get away from std::string
     std::vector<std::string> table(LZW_ALPHA_SIZE);
     for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
         table[i] += i;
-
-    // TODO: try using this instead of std::string
-    //std::vector<uint8_t> code_buf(8);
-    //unsigned code_buf_ptr = 0;
 
     int bytes_per_code = 2;
     unsigned old_code = 0;
     unsigned new_code = 0;
     uint8_t cc = 0;
-
     uint8_t cbuf;
     std::string s;
 
@@ -236,9 +224,6 @@ std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_len
 
     s += old_code;
     out.push_back(old_code);
-
-    //code_buf[code_buf_ptr] = old_code;  // use this for s rather than a string
-    //out.push_back(old_code);
 
     while(inp_ptr < inp_length)
     {
@@ -278,10 +263,6 @@ std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_len
         std::string new_sym;
         new_sym += table[old_code];
         new_sym += cc;
-
-        std::cout << "[" << __func__ << "] s: " << s << std::endl;
-        std::cout << "[" << __func__ << "] cc: " << cc << std::endl;
-        std::cout << "[" << __func__ << "] new_sym: " << new_sym << std::endl;
 
         table.push_back(new_sym);
         old_code = new_code;
