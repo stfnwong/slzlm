@@ -42,9 +42,7 @@ def test_lzw_large_text():
 
     sample_len = 4096
     inp = np.frombuffer(text[:sample_len], dtype="uint8")
-    #inp = np.frombuffer(text.encode("latin-1"), dtype="uint8")
 
-    #from pudb import set_trace; set_trace()
     enc_text = lzw_encode(inp)
     dec_text = lzw_decode(enc_text)
 

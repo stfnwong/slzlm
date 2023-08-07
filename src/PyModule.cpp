@@ -21,6 +21,10 @@ namespace py = pybind11;
  * am just experimenting with different things to see what happens. Ideally we don't 
  * copy any of the input bytes.
  */
+
+/*
+ * Encode function interface
+ */
 py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
 {
     py::buffer_info info = data.request();
@@ -42,6 +46,9 @@ py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
 }
 
 
+/*
+ * Decode function interface
+ */
 py::array_t<uint8_t> py_lzw_decode(const py::array_t<uint8_t>& data)
 {
     py::buffer_info info = data.request();
@@ -78,22 +85,6 @@ py::array_t<uint8_t> py_lzw_decode(const py::array_t<uint8_t>& data)
 //
 
 
-
-py::array_t<char> py_numpy_test(const py::array_t<char>& data)
-{
-    py::buffer_info info = data.request();
-    char* ptr = static_cast<char*>(info.ptr);
-
-    // make another pointer for the output data
-    py::array_t<char> result = py::array_t<char>(info.size);
-    py::buffer_info res_info = result.request();
-    char* res_ptr = static_cast<char*>(res_info.ptr);
-
-    for(ssize_t i = 0; i < info.size; ++i)
-        res_ptr[i] = (2 * ptr[i])  % 256;
-
-    return result;
-}
 
 
 // TODO: .doc() for each of these, syntax is 
@@ -143,6 +134,4 @@ PYBIND11_MODULE(slz, m)
     m.def("lzw_encode", &py_lzw_encode);
     // Function decode 
     m.def("lzw_decode", &py_lzw_decode);
-
-    m.def("numpy_test", &py_numpy_test);
 }
