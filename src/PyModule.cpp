@@ -36,7 +36,7 @@ py::array_t<uint8_t> py_lzw_encode(const py::array_t<uint8_t>& data)
     py::buffer_info out_info = out_data.request();
     uint8_t* out_data_ptr = static_cast<uint8_t*>(out_info.ptr);
 
-    unsigned out_len = lzw_encode_vector(inp_data_ptr, inp_data_size, out_data_ptr);
+    unsigned out_len = lzw_encode(inp_data_ptr, inp_data_size, out_data_ptr);
 
     // TODO: check how many copies there are...
     return py::array_t<uint8_t>(
@@ -55,7 +55,7 @@ py::array_t<uint8_t> py_lzw_decode(const py::array_t<uint8_t>& data)
     const uint8_t* inp_data_ptr = static_cast<const uint8_t*>(info.ptr);
     unsigned inp_data_size = info.size;
 
-    std::vector<uint8_t> out_data = lzw_decode_vector(inp_data_ptr, inp_data_size);
+    std::vector<uint8_t> out_data = lzw_decode(inp_data_ptr, inp_data_size);
 
     return py::array_t<uint8_t>(
             out_data.size(),

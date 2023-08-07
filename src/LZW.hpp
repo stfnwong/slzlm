@@ -21,20 +21,12 @@ using lzw_symbol_t = uint8_t;
 const constexpr uint32_t LZW_ALPHA_SIZE = 1 << (8 * sizeof(lzw_symbol_t));
 
 
-// Encode function
-std::stringstream lzw_encode(const std::string_view data);
-std::stringstream lzw_decode(std::stringstream& data);
-
-// Decode from a string_view
-std::vector<uint8_t> lzw_decode_sv(const std::string_view data);
-
 /*
  * Encode from a C-style array
  */
-// TODO: change these names...
-unsigned lzw_encode_vector(const uint8_t* inp_data, unsigned inp_length, uint8_t* out_data);
+unsigned lzw_encode(const uint8_t* inp_data, unsigned inp_length, uint8_t* out_data);
 
-std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_length);
+std::vector<uint8_t> lzw_decode(const uint8_t* inp_data, unsigned inp_length);
 
 
 /*

@@ -27,73 +27,6 @@ struct Node
 };
 
 
-/*
- * Encode data to LZW stream
- */
-std::stringstream lzw_encode(const std::string_view data)
-{
-    std::stringstream out;
-    int bytes_per_code = 2;    // minimum code size is 16-bits
-    int offset24 = 0;
-    int offset32 = 0;
-    int num_codes = 0;
-    uint32_t cur_key = 0;
-
-    // Write offset data to start of stream
-    out.seekp(0);
-    // write dummy values for later 
-    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&num_codes), sizeof(uint32_t));
-
-    std::unique_ptr<Node> prefix_tree = std::make_unique<Node>();
-
-    // Init the dict 
-    auto* node = prefix_tree.get();
-    for(cur_key = 0; cur_key < LZW_ALPHA_SIZE; ++cur_key)
-        node->children.emplace(cur_key, std::make_unique<Node>(cur_key, true));
-
-    for(const char& c: data)  
-    {
-        // see if we have c already
-        auto it = node->children.find(uint8_t(c));
-
-        if(it == node->children.end())
-        {
-            // write this code to output
-            out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-            // insert 
-            it = node->children.emplace(
-                    uint8_t(c), 
-                    std::make_unique<Node>(cur_key, true)
-            ).first;
-            node = prefix_tree->children.find(uint8_t(c))->second.get();
-            cur_key++;
-
-            if(cur_key == 0xFFFF)
-            {
-                bytes_per_code = 3;
-                offset24 = out.tellp();
-            }
-            if(cur_key == 0xFFFFFF)
-            {
-                bytes_per_code = 4;
-                offset32 = out.tellp();
-            }
-        }
-        else
-            node = it->second.get();
-    }
-    out.write(reinterpret_cast<const char*>(&node->value), bytes_per_code);
-    // go back and write the offsets
-    out.seekp(0, std::ios::beg);
-    out.write(reinterpret_cast<const char*>(&offset24), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&offset32), sizeof(uint32_t));
-    out.write(reinterpret_cast<const char*>(&cur_key), sizeof(uint32_t));
-
-    return out;
-}
-
 
 
 
@@ -105,7 +38,7 @@ std::stringstream lzw_encode(const std::string_view data)
 // 
 // return:
 //  unsigned - actual length of output array
-unsigned lzw_encode_vector(
+unsigned lzw_encode(
         const uint8_t* inp_data, 
         unsigned inp_length, 
         uint8_t* out_data
@@ -181,7 +114,7 @@ unsigned lzw_encode_vector(
 
 
 // As with encode, we expect inp_data and out_data to be allocated.
-std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_length)
+std::vector<uint8_t> lzw_decode(const uint8_t* inp_data, unsigned inp_length)
 {
     std::vector<uint8_t> out;
 
@@ -270,193 +203,6 @@ std::vector<uint8_t> lzw_decode_vector(const uint8_t* inp_data, unsigned inp_len
 
     return out;
 }
-
-
-
-
-/*
- * Decode LZW stream
- */
-std::stringstream lzw_decode(std::stringstream& input)
-{
-    // Assume that the input contains header with format 
-    // offset24 (4 bytes)  - offset where first 24-bit code occurs. 0 = no 24 bit codes
-    // effset32 (4 bytes)  - offset where first 32-bit code occurs. 0 = no 32 bit codes
-    // num_codes (4 bytes) - total number of unique codes
-    //
-    // first code is guaranteed to be min_code_size (2 bytes) long.
-
-    std::stringstream out;
-
-    // Decode header
-    uint32_t header[3];     // offset24, offset32, num_codes
-    char header_buf[4];
-    
-    for(unsigned h = 0; h < 3; ++h)
-    {
-        input.read(header_buf, sizeof(uint32_t));
-        header[h] = 
-            header_buf[3] << 24 | 
-            header_buf[2] << 16 | 
-            header_buf[1] << 8 | 
-            header_buf[0];
-    }
-
-
-    // Create symbol table
-    std::vector<std::string> table(LZW_ALPHA_SIZE);
-    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-        table[i] += i;
-
-    std::string s;
-    int bytes_per_code = 2;
-    unsigned old_code = 0;
-    unsigned new_code = 0;
-    char buf;
-    char cc = 0;
-
-    // Get the first code
-    for(int i = 0; i < bytes_per_code; ++i)
-    {
-        if(!input.get(buf))
-            return out;
-        old_code = old_code | (buf << (8 * i));
-    }
-    s += old_code;
-    out << s;
-
-    while(input)
-    {
-        // Check what the code size should be 
-        if(input.tellg() == header[0])
-            bytes_per_code = 3;
-
-        if(input.tellg() == header[1])
-            bytes_per_code = 4;
-
-        new_code = 0;
-        for(int i = 0; i < bytes_per_code; ++i)
-        {
-            if(!input.get(buf))
-                break;
-            new_code = new_code | (buf << (8 * i));
-        }
-
-        if(input.eof() || input.fail())
-            break;
-
-        if(new_code >= table.size())   // unseen code
-        {
-            s = table[old_code];
-            s += cc;
-        }
-        else        // concat symbol
-        {
-            s = "";
-            s += table[new_code];
-        }
-        cc = s[0];
-        out << s;
-
-        std::string new_sym;
-        new_sym += table[old_code];     // need to get each byte of this out...
-        new_sym += cc;
-
-        table.push_back(new_sym);
-        old_code = new_code;
-    }
-
-    return out;
-}
-
-
-/*
- * lzw_decode_sv()
- * Decode from a string_view
- */
-std::vector<uint8_t> lzw_decode_sv(const std::string_view data)
-{
-    std::vector<uint8_t> out;
-
-    // First 12 characters are header 
-    uint32_t offset24 = (data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0]);
-    uint32_t offset32 = (data[7] << 24 | data[6] << 16 | data[5] << 8 | data[4]);
-    //uint32_t num_codes = (data[11] << 24 | data[10] << 16 | data[9] << 8 | data[8]);
-
-    // Init symbol table 
-    std::vector<std::string> table(LZW_ALPHA_SIZE);
-    
-    for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
-        table[i] += i;
-
-    int bytes_per_code = 2;
-    unsigned inp_pos = 12;
-    unsigned new_code = 0;
-    unsigned old_code = 0;
-    char c;
-    char cc = 0;
-    std::string s;
-
-    // Read the first code
-    for(int i = 0; i < bytes_per_code; ++i)
-    {
-        c = data[inp_pos];
-        inp_pos++;
-        if(inp_pos >= data.size()-1)
-            return out;         // no more options, just return a stream
-
-        old_code = old_code | (c << (8*i));
-    }
-    
-    s += old_code;
-    out.push_back(s[0]);    // this should always be a single character
-    //out << s;
-
-    while(inp_pos < data.size())
-    {
-        if(inp_pos == offset24)
-            bytes_per_code = 3;
-        if(inp_pos == offset32)
-            bytes_per_code = 4;
-
-        new_code = 0;
-        for(int i = 0; i < bytes_per_code; ++i)
-        {
-            c = data[inp_pos];
-            inp_pos++;
-            new_code = new_code | (c << (8*i));
-
-            if(inp_pos >= data.size())
-                break;
-        }
-
-        if(new_code >= table.size())
-        {
-            s = table[old_code];
-            s += cc;
-        }
-        else
-        {
-            s = "";
-            s += table[new_code];
-        }
-
-        cc = s[0];
-        for(const auto& b : s)
-            out.push_back(b);
-        //out << s;
-
-        std::string new_sym;
-        new_sym += table[old_code];
-        new_sym += cc;
-
-        table.push_back(new_sym);
-        old_code = new_code;
-    }
-
-    return out;
-}
-
 
 
 

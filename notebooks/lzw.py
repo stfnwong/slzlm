@@ -56,53 +56,59 @@
 # %autoreload 2
 
 # %%
-# TODO: hack - need to pip install package to avoid #this?
+# TODO: hack - need to pip install package to avoid this?
 import os, sys
 
 if ".." not in sys.path:
     sys.path.insert(0, "..")
-#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # %%
+import numpy as np
 from slz import lzw_encode      # import the functional encoder
+
 
 # We start with the example from the unit test
 test_input = "babaabaaa"
 
-encoded = lzw_encode(test_input)
-enc_bytes = encoded.encode("utf-8")
+# We convert the input to a byte array
+func_inp = np.frombuffer(test_input.encode("utf-8"), dtype="uint8")
+
+encoded = lzw_encode(func_inp)
 
 print(f"Length of input string  : {len(test_input.encode('utf-8'))}")
-print(f"Length of output string : {len(enc_bytes)}")
-print(f"bytes: {enc_bytes}")
+print(f"Length of output string : {len(encoded)}")
+print(f"bytes: {encoded}")
 
 # %% [markdown]
-# Note that the output is longer than the input. This is often the case in general with compression - significant compression is achieved in the limit but often not for small inputs. In this specific case though some of the overhead is in the header itself. The first 12 bytes provide information for decoding. In this example the header is longer than the original string, and actually contains relatively little information. If we skip the first 12 bytes
+# Note that the output is longer than the input. This is often the case in general with compression - significant compression is achieved in the limit but not always for small inputs. In this specific case though some of the overhead is in the header itself. The first 12 bytes provide information for decoding. In this example the header is longer than the original string, and actually contains relatively little information. If we skip the first 12 bytes
 
 # %%
-print(f"bytes: {enc_bytes[11:]}")
+print(f"bytes: {encoded[11:]}")
 
 # %% [markdown]
-# We can decode a stream with this header using `lzw_decode`. This accepts a byte stream that is expected to have the header format described above, followed by a byte stream of compressed bytes. The signature for `lzw_decode` is
+# We can decode a stream with this header using `lzw_decode`. This accepts an `np.ndarray` of bytes that is expected to have the header format described above, followed by a byte stream of compressed bytes. The signature for `lzw_decode` is
 #
 # ```python
-# def lzw_decode(data: bytes) -> str:
+# def lzw_decode(data: np.ndarray) -> str:
 # ```
 #
-# The underlying representation accepts a `std::stringstream` but is wrapped to accept a `const std::string&`. The function accepts `str` or `bytes`, but a `str` formatted for display may not preserve the header information correctly.
+# The underlying representation accepts a pointer to a `uint8_t` array, but is wrapped to accept a `pybind11::array_t<uint8_t>`. The wrapper function accepts an `np.ndarray` of bytes. This means that if we wish to read (for example) text files from disk, we need to perform a conversion 
 #
 # ```c++
-# std::string lzw_decode(const std::string& data)
+# pybind11::array_t<uint8_t> lzw_decode(const pybind11::array_t<uin8_t>& data)
 # ```
 
 # %%
 from slz import lzw_decode
 
-dec_out = lzw_decode(enc_bytes)
+decoded = lzw_decode(encoded)
 
-print(f"Length of input string  : {len(enc_bytes)}")
-print(f"Length of output string : {len(dec_out)}")
-print(f"str: {dec_out}")
+print(f"Length of input string  : {len(encoded)}")
+print(f"Length of output string : {len(decoded)}")
+print(f"str: {decoded}")
+
+dec_string = "".join([chr(c) for c in decoded])
+print(f"{dec_string}"")
 
 # %% [markdown]
 # ### Encoding a stream from a file
@@ -116,9 +122,10 @@ input_filename = "../test/shakespear.txt"
 
 with open(input_filename, "rb") as fp:
     text = fp.read()
-    #text = "".join(fp.readlines())
 
-substr = text[1024:2048]
+sample_len = 1024
+    
+substr = text[:sample_len]
 print(type(substr))
 print(substr)
 print(len(substr))
@@ -127,9 +134,7 @@ print(len(substr))
 # We encode the string using `lzw_encode`.
 
 # %%
-print(type(substr))
-enc = lzw_encode(substr)
-#enc = lzw_encode(substr.encode("utf-8"))
-
-
+substr_inp = np.frombuffer(substr, dtype="uint8")
+enc = lzw_encode(substr_inp)
 print(len(enc))
+print(enc)
