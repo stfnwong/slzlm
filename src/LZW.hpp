@@ -13,9 +13,6 @@
 #include <vector>
 #include <sstream>
 
-// TODO: debug only
-#include <iostream>
-
 
 using lzw_symbol_t = uint8_t;
 const constexpr uint32_t LZW_ALPHA_SIZE = 1 << (8 * sizeof(lzw_symbol_t));

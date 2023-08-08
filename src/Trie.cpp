@@ -3,12 +3,10 @@
  * Trie Node
  */
 
-#include <pybind11/pybind11.h>
-
 #include "Trie.hpp"
 
+
 // Private inner implementation of search
-//std::unique_ptr<TrieNode> Trie::search_inner(const std::string_view word) const
 const TrieNode* Trie::search_inner(const std::string_view word) const
 {
     const auto* node = this->root.get();
@@ -119,21 +117,3 @@ uint32_t TrieArray::search_key(const std::string_view word) const
 
     return NULL_KEY_VALUE;
 }
-
-
-
-
-// TODO: for LZ I think I need a version that gives back the key
-
-
-
-// Python binding test
-//namespace py = pybind11;
-//
-//PYBIND11_MODULE(slz, m)
-//{
-//    py::class_ <Trie>(m, "Trie")
-//        .def(py::init<>())
-//        .def("insert", &Trie::insert)
-//        .def("search", &Trie::search);
-//}

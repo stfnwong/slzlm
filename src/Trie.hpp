@@ -16,7 +16,6 @@
 static constexpr const uint32_t NULL_KEY_VALUE = 0;
 
 
-// TODO: this can become private member of Trie
 struct TrieNode
 {
     bool leaf;

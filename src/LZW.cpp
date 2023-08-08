@@ -67,7 +67,6 @@ unsigned lzw_encode(
 
         if(it == node->children.end())
         {
-            // TODO: lambda?
             for(int b = 0; b < bytes_per_code; ++b)
             {
                 out_data[out_ptr] = (node->value >> (8*b)) & 0xFF;
@@ -134,7 +133,7 @@ std::vector<uint8_t> lzw_decode(const uint8_t* inp_data, unsigned inp_length)
         num_codes = num_codes | (inp_data[i+8] << (8*i));
 
     // Create symbol table 
-    // TODO: do I want to try and get away from std::string
+    // NOTE: do I want to try and get away from std::string?
     std::vector<std::string> table(LZW_ALPHA_SIZE);
     for(unsigned i = 0; i < LZW_ALPHA_SIZE; ++i)
         table[i] += i;
