@@ -10,7 +10,8 @@ from slz import (
 # The encoded output, each element is the value of a single byte in the stream,
 # the first 12 bytes are the expected header
 exp_int_seq = [
-    0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0, 98, 0, 97, 0, 0, 1, 1, 1, 97, 0, 4, 1
+    0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0,  # header
+    98, 0, 97, 0, 0, 1, 1, 1, 97, 0, 4, 1  # stream
 ]
 
 
