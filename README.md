@@ -26,6 +26,10 @@ This is a description of the header formats used by the various compressors.
 | 8      | 4      | Total number of codes | 
 
 
+### LZSS
+_Coming Soon_.
+
+
 ## C++ Requirements 
 - C++17 (I am using `std::string_view` so need support for that).
 - GNU Make.
@@ -53,13 +57,20 @@ Add `-vvv` to the end of the above command to also see a lot of text. The build 
 work with poetry yet and perhaps never will, so don't do anything else.
 
 
-As of this writing, to get the python packages built do 
+Building the python packages requires that we invoke
 
 `python setup.py build_ext -i`
 
-This creates the shared object file in the root folder. NOTE: this is a shit place to 
-put this, and anyway it fails in the test because obviously we can't find it.
+This creates the shared object file in the root folder. This step is now folded into the 
+Makefile under the target `python` (eg: `make python` will run this). I have written 
+the Makefile so that `python` is a target of `all`, so it should be sufficient to run
 
+`make all`
+
+to get everything built. This has really only been tested on my laptop (Manjaro Linux
+6.1.41-1 x86_64), and even then I am using the soon-to-be-deprecated `imp` module to 
+get everything loaded in python, which is almost certainly not what I am supposed to 
+be doing.
 
 TODO: There is loads of real packaging to do for this, and I probably have to move away
 from my usual handy-dandy Makefile and use `cmake` or something.
