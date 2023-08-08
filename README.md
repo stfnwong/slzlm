@@ -63,3 +63,10 @@ put this, and anyway it fails in the test because obviously we can't find it.
 
 TODO: There is loads of real packaging to do for this, and I probably have to move away
 from my usual handy-dandy Makefile and use `cmake` or something.
+
+
+
+## Notebooks
+The `notebooks` directory contains example notebooks in `py:percent` format. Each 
+notebok walks through some particular aspect of the project. For example, the `lzw.py` 
+notebook explains the LZW compressor implemented in `src/LZW.cpp`.
