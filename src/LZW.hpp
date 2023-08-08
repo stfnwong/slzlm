@@ -63,9 +63,12 @@ class LZWEncoder
     uint32_t num_codes;
     int bytes_per_code;
     bool insert_header;
+    unsigned out_ptr;
+    unsigned inp_ptr;
 
     // Encoded stream
-    std::stringstream out;
+    ///std::stringstream out;
+    std::vector<uint8_t> out;
 
     LZWNode* insert(const lzw_symbol_t c, LZWNode* node);
     LZWNode* search_node(const lzw_symbol_t c, LZWNode* node) const;
@@ -74,13 +77,15 @@ class LZWEncoder
     public:
         LZWEncoder();
         void init(void);
-        bool contains(const std::string_view data) const;
+        //bool contains(const std::string_view data) const;
         // TODO: re-write to return void, add write() method
-        void encode(const std::string_view input);
-        std::string get(void);
-        std::stringstream get_stream(void);
-        void to_file(const std::string& filename);
-        unsigned size(void) const;
+        void encode(const uint8_t* data, unsigned length);
+        const std::vector<uint8_t>& get(void);
+        //std::string get(void);
+        //std::stringstream get_stream(void);
+        //void to_file(const std::string& filename);
+        unsigned tree_size(void) const;
+        unsigned length(void) const;
         //std::vector<uint16_t> get_code(const std::string_view word) const; // <- debug only, remove
 };
 
@@ -104,15 +109,18 @@ class LZWDecoder
     // information and set read_header true. If true then when we call decode() the first 12 
     // bytes are assumed to be part of the data stream.
     bool read_header;       
+    unsigned inp_ptr;
+    unsigned out_ptr;
 
-    std::stringstream out;
+    std::vector<uint8_t> out;
 
     public:
         LZWDecoder();
         void init(void);
-        void decode(std::stringstream& input);
-        std::string get(void);
-        std::stringstream get_stream(void);
+        void decode(const uint8_t* data, unsigned length);
+        //std::string get(void);
+        //std::stringstream get_stream(void);
+        const std::vector<uint8_t>& get(void) const;
         void to_file(const std::string& filename);
         unsigned size(void) const;
 };

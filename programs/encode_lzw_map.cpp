@@ -25,8 +25,6 @@ void lzw_encode_long_string(const std::string& filename)
             std::istreambuf_iterator<char>(file),
             std::istreambuf_iterator<char>()
     );
-
-
     file.close();
 
     auto t0 = std::chrono::system_clock::now();
@@ -35,10 +33,6 @@ void lzw_encode_long_string(const std::string& filename)
     unsigned enc_size = lzw_encode(inp_data.data(), inp_data.size(), out_data);
 
     auto t1 = std::chrono::system_clock::now();
-
-    //enc.seekg(0, std::ios::end);
-    //size_t enc_size = enc.tellg();
-    //enc.seekg(0, std::ios::beg);
 
     std::cout << "[" << __func__ << "] input was [" << inp_data.size() << "] characters." << std::endl;
     std::cout << "[" << __func__ << "] output was [" << enc_size << "] characters." << std::endl;
@@ -49,7 +43,7 @@ void lzw_encode_long_string(const std::string& filename)
     auto delta_t = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
     std::cout << "Encoding time was: " << delta_t.count() << " ms." << std::endl;
 
-    // TODO: Some more stats from header (eg: num_codes)
+    // TODO: Some more stats from header (eg: num_codes)?
     
     delete[] out_data;
 }

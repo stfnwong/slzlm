@@ -96,13 +96,17 @@ PYBIND11_MODULE(slz, m)
     py::class_ <LZWEncoder>(m, "LZWEncoder")
         .def(py::init<>())
         .def("init", &LZWEncoder::init)
-        .def("contains", &LZWEncoder::contains)
-        .def("encode", &LZWEncoder::encode)
-        .def("get", [](LZWEncoder &self) -> py::bytes {
-                return py::bytes(self.get());
-        })          // via https://github.com/pybind/pybind11/issues/1811
-        .def("to_file", &LZWEncoder::to_file)
-        .def("size", &LZWEncoder::size);
+        .def("encode", [](LZWEncoder& self, const py::array_t<uint8_t>& data) {
+            py::buffer_info info = data.request();
+            const uint8_t* inp_data_ptr = static_cast<const uint8_t*>(info.ptr);
+            unsigned inp_data_size = info.size;
+
+            self.encode(inp_data_ptr, inp_data_size);
+        })
+        .def("get", &LZWEncoder::get)
+        //.def("encode", &LZWEncoder::encode)
+        //.def("to_file", &LZWEncoder::to_file)
+        .def("tree_size", &LZWEncoder::tree_size);
 
     // Object oriented decoder
     py::class_ <LZWDecoder>(m, "LZWDecoder")
@@ -115,13 +119,16 @@ PYBIND11_MODULE(slz, m)
         //        std::stringstream ss(info.ptr);
         //        self.decode(ss);
         //})
-        .def("decode", [](LZWDecoder &self, const std::string& data) {
-                std::stringstream ss(data);
-                self.decode(ss);        // TODO: wtf is wrong with this?
+        .def("decode", [](LZWDecoder& self, const py::array_t<uint8_t>& data) {
+            py::buffer_info info = data.request();
+            const uint8_t* inp_data_ptr = static_cast<const uint8_t*>(info.ptr);
+            unsigned inp_data_size = info.size;
+
+            self.decode(inp_data_ptr, inp_data_size);
         })
-        .def("get", [](LZWDecoder &self) -> py::bytes {
-                return py::bytes(self.get());
-        })          // via https://github.com/pybind/pybind11/issues/1811
+        //.def("get", [](LZWDecoder &self) -> py::bytes {
+        //        return py::bytes(self.get());
+        //})          // via https://github.com/pybind/pybind11/issues/1811
         .def("size", &LZWDecoder::size);
 
     // Prefix tree

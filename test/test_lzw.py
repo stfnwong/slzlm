@@ -73,8 +73,9 @@ def test_lzw_oo_decode():
     lzw_dec = LZWDecoder();
 
     test_input = "babaabaaa"
+    inp = np.frombuffer(test_input.encode("utf-8"), dtype="uint8")
     lzw_enc = LZWEncoder()
-    lzw_enc.encode(test_input.encode("utf-8"))
+    lzw_enc.encode(inp)
     encode_out = lzw_enc.get()
 
     lzw_dec.decode(encode_out)
@@ -98,7 +99,8 @@ def test_lzw_oo_encode_loop():
 
     for chunk in range(num_chunks):
         s = text[chunk * chunk_size : (chunk+1) * chunk_size]
-        lzw.encode(s)
+        inp = np.frombuffer(s, dtype="uint8")
+        lzw.encode(inp)
 
     encode_out = lzw.get()
     # not sure what the actual encoding should be...

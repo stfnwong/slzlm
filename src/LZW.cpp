@@ -67,7 +67,7 @@ unsigned lzw_encode(
 
         if(it == node->children.end())
         {
-            // TODO: lambda?
+            // To make this fast I need to be not doing this byte-by-byte
             for(int b = 0; b < bytes_per_code; ++b)
             {
                 out_data[out_ptr] = (node->value >> (8*b)) & 0xFF;
@@ -295,7 +295,8 @@ std::stringstream lzw_array_encode(const std::string_view data)
  */
 
 LZWEncoder::LZWEncoder() : cur_key(0), root(std::make_unique<LZWNode>()),
-    offset24(0), offset32(0), num_codes(0), bytes_per_code(2), insert_header(true)
+    offset24(0), offset32(0), num_codes(0), bytes_per_code(2), insert_header(true),
+    out_ptr(0), inp_ptr(0)
 {
     this->init();
 }
@@ -348,7 +349,6 @@ void LZWEncoder::clear_dict(void)
 void LZWEncoder::init(void)
 {
     this->out.clear();
-    this->out.str("");
     this->clear_dict();
 
     for(uint32_t code = 0; code < LZW_ALPHA_SIZE; ++code)
@@ -359,6 +359,8 @@ void LZWEncoder::init(void)
     this->num_codes = 0;
     this->bytes_per_code = 2;
     this->insert_header = true;
+    this->out_ptr = 0;
+    this->inp_ptr = 0;
 }
 
 
@@ -366,65 +368,94 @@ void LZWEncoder::init(void)
  * contains()
  * Returns true if there is a prefix that matches the sequence in data
  */
-bool LZWEncoder::contains(const std::string_view data) const
-{
-    auto* node = this->root.get();
-
-    for(auto const c: data) 
-    {
-        auto& children = node->children;
-        auto it = children.find(lzw_symbol_t(c));
-        if(it == children.end())
-            return false;
-
-        node = it->second.get();
-    }
-
-    return true;
-}
+//bool LZWEncoder::contains(const std::string_view data) const
+//{
+//    auto* node = this->root.get();
+//
+//    for(auto const c: data) 
+//    {
+//        auto& children = node->children;
+//        auto it = children.find(lzw_symbol_t(c));
+//        if(it == children.end())
+//            return false;
+//
+//        node = it->second.get();
+//    }
+//
+//    return true;
+//}
 
 
 /*
  * Encode a stream into an LZW stream
  */
-void LZWEncoder::encode(const std::string_view input)
+void LZWEncoder::encode(const uint8_t* data, unsigned length)
 {
+    unsigned inp_ptr = 0;
     // On the first call, write the header information to the output stream
     if(this->insert_header)
     {
-        this->out.write(reinterpret_cast<const char*>(&this->offset24), sizeof(uint32_t));
-        this->out.write(reinterpret_cast<const char*>(&this->offset32), sizeof(uint32_t));
-        this->out.write(reinterpret_cast<const char*>(&this->num_codes), sizeof(uint32_t));
+        this->out_ptr = 12;
+        this->out.reserve(length + 12);
+        for(unsigned i = 0; i < 12; ++i)
+            this->out.push_back(0);     // reserve some memory - this is probably an inefficient way to do this..
+
+        //this->out.write(reinterpret_cast<const char*>(&this->offset24), sizeof(uint32_t));
+        //this->out.write(reinterpret_cast<const char*>(&this->offset32), sizeof(uint32_t));
+        //this->out.write(reinterpret_cast<const char*>(&this->num_codes), sizeof(uint32_t));
         this->insert_header = false;
         this->cur_node = this->root.get();
     }
+    else
+        this->out.reserve(this->out.size() + length);
 
+    // Check if we should extend the out vector a bit
+    //if((this->out_ptr + length) > this->out.size())
+    //    this->out.reserve(this->out.size() + length);
+    
 
-    for(const auto& c : input)
+    // TODO: out_ptr doesn't really do anything...
+    for(inp_ptr = 0; inp_ptr < length; ++inp_ptr)
     {
-        auto* result_node = this->search_node(lzw_symbol_t(c), this->cur_node);
-        if(!result_node)
+        uint8_t c = data[inp_ptr];
+        auto it = cur_node->children.find(c);
+
+        if(it == cur_node->children.end())
         {
-            this->out.write(reinterpret_cast<const char*>(&this->cur_node->value), bytes_per_code);
-            this->insert(lzw_symbol_t(c), this->cur_node);
+            // Write output
+            for(int b = 0; b < this->bytes_per_code; ++b)
+            {
+                //this->out[this->out_ptr] = (cur_node->value >> (8*b)) & 0xFF;
+                this->out.push_back((cur_node->value >> (8*b)) & 0xFF);
+                this->out_ptr++;
+            }
+            this->insert(c, this->cur_node);
             this->cur_node = this->root->children.find(lzw_symbol_t(c))->second.get();
 
             if(this->cur_key == 0xFFFF)
             {
                 this->bytes_per_code = 3;
-                this->offset24 = this->out.tellp();
+                this->offset24 = this->out_ptr;
             }
             if(this->cur_key == 0xFFFFFF)
             {
                 this->bytes_per_code = 4;
-                this->offset32 = this->out.tellp();
+                this->offset32 = this->out_ptr;
             }
         }
         else
-            this->cur_node = result_node;
+            cur_node = it->second.get();
     }
 
-    out.write(reinterpret_cast<const char*>(&this->cur_node->value), bytes_per_code);
+    // Write the last node in the sequence
+    for(int b = 0; b < this->bytes_per_code; ++b)
+    {
+        //this->out[this->out_ptr] = (cur_node->value >> (8*b)) & 0xFF;
+        this->out.push_back((cur_node->value >> (8*b)) & 0xFF);
+        this->out_ptr++;
+    }
+    
+    //out.write(reinterpret_cast<const char*>(&this->cur_node->value), bytes_per_code);
 }
 
 
@@ -432,17 +463,26 @@ void LZWEncoder::encode(const std::string_view input)
  * get()
  * Get the underlying stream generated by one or more calls to encode()
  */
-std::string LZWEncoder::get(void)
+const std::vector<uint8_t>& LZWEncoder::get(void) 
 {
     // Write the header information
-    this->out.seekp(0, std::ios::beg);
-    this->out.write(reinterpret_cast<const char*>(&this->offset24), sizeof(uint32_t));
-    this->out.write(reinterpret_cast<const char*>(&this->offset32), sizeof(uint32_t));
-    this->out.write(reinterpret_cast<const char*>(&this->cur_key), sizeof(uint32_t));
-    this->out.seekp(0, std::ios::end);
-    this->out.seekg(0, std::ios::end);
+    //this->out.seekp(0, std::ios::beg);
+    //this->out.write(reinterpret_cast<const char*>(&this->offset24), sizeof(uint32_t));
+    //this->out.write(reinterpret_cast<const char*>(&this->offset32), sizeof(uint32_t));
+    //this->out.write(reinterpret_cast<const char*>(&this->cur_key), sizeof(uint32_t));
+    //this->out.seekp(0, std::ios::end);
+    //this->out.seekg(0, std::ios::end);
+    //return this->out.str();     // TODO: this is wrong due to string formatting
 
-    return this->out.str();     // TODO: this is wrong due to string formatting
+    // Write header information
+    for(int i = 0; i < 4; ++i)
+        this->out[i] = (this->offset24 >> (8*i)) & 0xFF;
+    for(int i = 0; i < 4; ++i)
+        this->out[i+4] = (this->offset32 >> (8*i)) & 0xFF;
+    for(int i = 0; i < 4; ++i)
+        this->out[i+8] = (this->cur_key >> (8*i)) & 0xFF;
+
+    return out;
 }
 
 
@@ -450,29 +490,29 @@ std::string LZWEncoder::get(void)
  * get_stream()
  * Return a new stream with the contents of the current internal stream
  */
-std::stringstream LZWEncoder::get_stream(void)
-{
-    std::stringstream ss;
-    ///this->out.seekp(0, std::ios::beg);
-    ss << this->out.rdbuf();
-    return ss;
-}
+//std::stringstream LZWEncoder::get_stream(void)
+//{
+//    std::stringstream ss;
+//    ///this->out.seekp(0, std::ios::beg);
+//    ss << this->out.rdbuf();
+//    return ss;
+//}
 
 
 /*
  * to_file()
  */
-void LZWEncoder::to_file(const std::string& filename)
-{
-    std::ofstream file(filename, std::ios::binary);
-    file << this->out.rdbuf();
-    file.close();
-}
+//void LZWEncoder::to_file(const std::string& filename)
+//{
+//    std::ofstream file(filename, std::ios::binary);
+//    file << this->out.rdbuf();
+//    file.close();
+//}
 
 /*
  * Counts number of nodes in prefix tree
  */
-unsigned LZWEncoder::size(void) const
+unsigned LZWEncoder::tree_size(void) const
 {
     std::stack<LZWNode*> s;
     unsigned count = 0;
@@ -496,6 +536,10 @@ unsigned LZWEncoder::size(void) const
 }
 
 
+unsigned LZWEncoder::length(void) const
+{
+    return this->out.size();
+}
 
 
 /*
@@ -504,7 +548,8 @@ unsigned LZWEncoder::size(void) const
  * data larger than "memory" by breaking it into chunks and calling decode() in a loop.
  */
 LZWDecoder::LZWDecoder() : table(LZW_ALPHA_SIZE), offset24(0), offset32(0), 
-    num_codes(0), bytes_per_code(2), read_header(false)
+    num_codes(0), bytes_per_code(2), read_header(false), 
+    inp_ptr(0), out_ptr(0)
 {
     this->init();
 }
@@ -522,38 +567,39 @@ void LZWDecoder::init(void)
     
     // reset stream info
     this->out.clear();
-    this->out.str("");
     this->offset24 = 0;
     this->offset32 = 0;
     this->num_codes = 0;
     this->bytes_per_code = 2;
     this->read_header = true;
+    this->inp_ptr = 0;
+    this->out_ptr = 0;
 }
 
 /*
  * decode()
  * Run decode on some chunk of the stream, updating the output and table.
  */
-void LZWDecoder::decode(std::stringstream& input) 
+void LZWDecoder::decode(const uint8_t* data, unsigned length) 
 {
-    if(read_header)
+    uint32_t offset24 = 0;
+    uint32_t offset32 = 0;
+    uint32_t num_codes = 0;
+
+    unsigned inp_ptr = 0;
+
+    if(this->read_header)
     {
-        uint32_t header[3]; // 0=offset24, 1=offset32, 2=num_codes
-        char header_buf[4];
+        for(unsigned i = 0; i < 4; ++i)
+            offset24 = offset24 | (data[i] << (8*i));
+        for(unsigned i = 0; i < 4; ++i)
+            offset32 = offset32 | (data[i+4] << (8*i));
+        for(unsigned i = 0; i < 4; ++i)
+            num_codes = num_codes | (data[i+8] << (8*i));
 
-        for(unsigned h = 0; h < 3; ++h)
-        {
-            input.read(header_buf, sizeof(uint32_t));
-            header[h] = 
-                header_buf[3] << 24 | 
-                header_buf[2] << 16 | 
-                header_buf[1] << 8 | 
-                header_buf[0];
-        }
-
-        this->offset24  = header[0];
-        this->offset32  = header[1];
-        this->num_codes = header[2];
+        inp_ptr = 12;
+        this->inp_ptr = inp_ptr;   // having two pointers kind of sucks, 
+                                   // TODO: at least change the name...
         this->read_header = false;
     }
 
@@ -562,39 +608,42 @@ void LZWDecoder::decode(std::stringstream& input)
     unsigned old_code = 0;
     unsigned new_code = 0;
     char cc = 0;
-    char buf;
+    uint8_t cbuf;
 
     // Read first code and write directly to output
     for(int i = 0; i < this->bytes_per_code; ++i)
     {
-        if(!input.get(buf))
-            return;  // Note, not sure what we could do here..
-        old_code = old_code | (buf << (8 * i));
+        cbuf = data[inp_ptr];
+        inp_ptr++; this->inp_ptr++;
+        old_code = old_code | (cbuf << (8 * i));
     }
-    s += old_code;
-    out << s;
 
-    while(input)
+    s += old_code;
+    out.push_back(old_code);
+
+    while(inp_ptr < length)
     {
         // Check what the code size should be 
-        if(input.tellg() == this->offset24)
+        if(this->inp_ptr == offset24)
             this->bytes_per_code = 3;
 
-        if(input.tellg() == this->offset32)
+        if(this->inp_ptr == offset32)
             this->bytes_per_code = 4;
 
         new_code = 0;
-        for(int i = 0; i < this->bytes_per_code; ++i)
+        for(int i = 0; i < bytes_per_code; ++i)
         {
-            if(!input.get(buf))
+            cbuf = data[inp_ptr];
+            inp_ptr++;
+            this->inp_ptr++;        // this is a shit design...
+            if(inp_ptr > length)
                 break;
-            new_code = new_code | (buf << (8 * i));
+
+            new_code = new_code | (cbuf << (8*i));
         }
 
-        if(input.eof() || input.fail())
-            break;
-
-        if(new_code >= table.size())   // unseen code
+        // Add unseen codes to table 
+        if(new_code >= table.size())
         {
             s = table[old_code];
             s += cc;
@@ -604,8 +653,11 @@ void LZWDecoder::decode(std::stringstream& input)
             s = "";
             s += table[new_code];
         }
+
         cc = s[0];
-        out << s;
+        // write s to output
+        for(const auto& e : s)
+            out.push_back(e);
 
         std::string new_sym;
         new_sym += table[old_code];
@@ -614,40 +666,44 @@ void LZWDecoder::decode(std::stringstream& input)
         this->table.push_back(new_sym);
         old_code = new_code;
     }
-
 }
 
+
+const std::vector<uint8_t>& LZWDecoder::get(void) const
+{
+    return this->out;
+}
 
 /*
  * get()
  * Get the underlying stream from a decoder
  */
-std::string LZWDecoder::get(void)
-{
-    return this->out.str();
-}
+//std::string LZWDecoder::get(void)
+//{
+//    return this->out.str();
+//}
 
 /*
  * get_stream()
  * Return a new stream with the contents of the current internal stream
  */
-std::stringstream LZWDecoder::get_stream(void)
-{
-    std::stringstream ss;
-    ///this->out.seekp(0, std::ios::beg);
-    ss << this->out.rdbuf();
-    return ss;
-}
+//std::stringstream LZWDecoder::get_stream(void)
+//{
+//    std::stringstream ss;
+//    ///this->out.seekp(0, std::ios::beg);
+//    ss << this->out.rdbuf();
+//    return ss;
+//}
 
 /*
  * to_file()
  */
-void LZWDecoder::to_file(const std::string& filename)
-{
-    std::ofstream file(filename, std::ios::binary);
-    file << this->out.rdbuf();
-    file.close();
-}
+//void LZWDecoder::to_file(const std::string& filename)
+//{
+//    std::ofstream file(filename, std::ios::binary);
+//    file << this->out.rdbuf();
+//    file.close();
+//}
 
 
 unsigned LZWDecoder::size(void) const
