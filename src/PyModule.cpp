@@ -92,38 +92,6 @@ py::array_t<uint8_t> py_lzw_decode(const py::array_t<uint8_t>& data)
 
 PYBIND11_MODULE(slz, m)
 {
-    // Object oriented encoder
-    py::class_ <LZWEncoder>(m, "LZWEncoder")
-        .def(py::init<>())
-        .def("init", &LZWEncoder::init)
-        .def("contains", &LZWEncoder::contains)
-        .def("encode", &LZWEncoder::encode)
-        .def("get", [](LZWEncoder &self) -> py::bytes {
-                return py::bytes(self.get());
-        })          // via https://github.com/pybind/pybind11/issues/1811
-        .def("to_file", &LZWEncoder::to_file)
-        .def("size", &LZWEncoder::size);
-
-    // Object oriented decoder
-    py::class_ <LZWDecoder>(m, "LZWDecoder")
-        .def(py::init<>())
-        .def("init", &LZWDecoder::init)
-        // TODO: is there a way to zero-copy init a stringstream from string_view or 
-        // py::bytes/py::buffer?
-        //.def("decode", [](LZWDecoder& self, py::buffer data) {
-        //        py::buffer_info info = data.request();
-        //        std::stringstream ss(info.ptr);
-        //        self.decode(ss);
-        //})
-        .def("decode", [](LZWDecoder &self, const std::string& data) {
-                std::stringstream ss(data);
-                self.decode(ss);        // TODO: wtf is wrong with this?
-        })
-        .def("get", [](LZWDecoder &self) -> py::bytes {
-                return py::bytes(self.get());
-        })          // via https://github.com/pybind/pybind11/issues/1811
-        .def("size", &LZWDecoder::size);
-
     // Prefix tree
     py::class_ <Trie>(m, "Trie")
         .def(py::init<>())
