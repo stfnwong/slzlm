@@ -3,6 +3,8 @@
 import numpy as np
 from scipy import stats
 
+from typing import Any, Callable
+
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -60,21 +62,28 @@ class BruteKNN:
             if self.problem == 0:
                 y_pred.append(np.mean(nbors))   # Regression
             else:
-                y_pred.append(stats.mode(nbors)[0][0])   # Classification
+                y_pred.append(stats.mode(nbors)[0])
+                #y_pred.append(stats.mode(nbors)[0][0])   # Classification
 
         return y_pred
 
 
 
+def create_sklearn_knn(k: int) -> Any:
+    knn = KNeighborsClassifier(n_neighbors=k)
+    return knn
 
-# Trial this against scipy
+
+def create_brute_knn(k: int) -> Any:
+    knn = BruteKNN(k=k, problem=1, metric=0)
+    return knn
 
 
-def main():
+# TODO: The correct thing to do here would be to use TypeVar for the KNN object
+def run_knn(create_knn: Callable[[int], Any]) -> Any:
     iris = load_iris()
-    data = iris.data
-    target = iris.target
-
+    data = iris.data            # NOTE: ndarray
+    target = iris.target            # NOTE: ndarray
 
     # Do a train test split
     X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2)
@@ -91,11 +100,12 @@ def main():
     train_error = []
     test_error = []
 
-    min_k = 1
+    min_k = 2
     max_k = 31
 
     for k in range(min_k, max_k+1):
-        knn = KNeighborsClassifier(n_neighbors=k)
+        #knn = KNeighborsClassifier(n_neighbors=k)
+        knn = create_knn(k)
         knn.fit(X_train_scaled, y_train)
 
         # Get train and test error
@@ -105,9 +115,7 @@ def main():
         train_error.append(np.mean(y_train != yp_train))
         test_error.append(np.mean(y_test != yp_test))
 
-    #from pudb import set_trace; set_trace()
     # Plot cuves
-
     plt.figure(figsize=(10, 5))
     plt.plot(train_error, color='b', label='train')
     plt.plot(test_error, color='r', label='test')
@@ -121,11 +129,11 @@ def main():
     plt.legend()
     plt.show()
 
-
     # Take k that minimizes test error
 
     best_k = test_error.index(min(test_error)) + 1    # offset since index 0 is k=1
-    best_knn = KNeighborsClassifier(n_neighbors=best_k)
+    best_knn = create_knn(best_k)
+    #best_knn = KNeighborsClassifier(n_neighbors=best_k)
 
     best_knn.fit(X_train_scaled, y_train)
     y_pred = best_knn.predict(X_test_scaled)
@@ -148,6 +156,13 @@ def main():
     plt.show()
 
     print(classification_report(y_test, y_pred))
+
+
+
+def main():
+    #run_knn(create_sklearn_knn)
+    run_knn(create_brute_knn)
+
 
 
 if __name__ == "__main__":
