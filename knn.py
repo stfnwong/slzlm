@@ -28,6 +28,7 @@ class BruteKNN:
         self.problem = problem
         self.metric = metric
 
+    # TODO: these become Eigen arrays?
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
         self.X_train = X_train
         self.y_train = y_train
@@ -104,7 +105,6 @@ def run_knn(create_knn: Callable[[int], Any]) -> Any:
     max_k = 31
 
     for k in range(min_k, max_k+1):
-        #knn = KNeighborsClassifier(n_neighbors=k)
         knn = create_knn(k)
         knn.fit(X_train_scaled, y_train)
 
@@ -120,9 +120,6 @@ def run_knn(create_knn: Callable[[int], Any]) -> Any:
     plt.plot(train_error, color='b', label='train')
     plt.plot(test_error, color='r', label='test')
 
-    #plt.plot(range(1, 15), train_error, color='b', label='train')
-    #plt.plot(range(1, 15), test_error, color='r', label='test')
-
     plt.xlabel("k", fontsize=14)
     plt.ylabel("Error", fontsize=14)
     plt.title("Error as k increases", fontsize=18, pad=15)
@@ -130,10 +127,8 @@ def run_knn(create_knn: Callable[[int], Any]) -> Any:
     plt.show()
 
     # Take k that minimizes test error
-
     best_k = test_error.index(min(test_error)) + 1    # offset since index 0 is k=1
     best_knn = create_knn(best_k)
-    #best_knn = KNeighborsClassifier(n_neighbors=best_k)
 
     best_knn.fit(X_train_scaled, y_train)
     y_pred = best_knn.predict(X_test_scaled)
