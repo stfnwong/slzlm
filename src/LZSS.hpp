@@ -16,13 +16,13 @@
 /*
  * INDEX_BIT_COUNT : Size of address word indexing into text window
  */
-constexpr const int INDEX_BIT_COUNT    = 12;    
+constexpr const int INDEX_BIT_COUNT    = 12;
 /*
  * LENGTH_BIT_COUNT : Size of field used to encode length of a matching phrase.
  */
 constexpr const int LENGTH_BIT_COUNT   = 4;
 /*
- * WINDOW_SIZE : Size of the text window. This is determined by the size of the index 
+ * WINDOW_SIZE : Size of the text window. This is determined by the size of the index
  * word. In this case we can index up to (2^12)-1 words, so the window size becomes
  * 1 << 12 (4096).
  */
@@ -51,8 +51,8 @@ template <class StreamImpl> struct BitStream
 
         uint8_t read_bit(void)
         {
-            uint8_t value, c;
-            
+            uint8_t value;
+
             if(this->rd_mask == 0x80)
                 this->rd_buf = static_cast<StreamImpl*>(this)->read();
 
@@ -130,13 +130,52 @@ template <class StreamImpl> struct BitStream
 
 
 
+struct PtrBitStream : BitStream<PtrBitStream>
+{
+    uint8_t* data;
+    unsigned data_len;
+    unsigned rd_ptr, wr_ptr;
+
+    public:
+        PtrBitStream(uint8_t* d, unsigned l) :
+            data(d), data_len(l), rd_ptr(0), wr_ptr(0) {}
+
+        uint8_t read(void) {
+            if(this->rd_ptr < this->data_len) {
+                this->rd_ptr++;
+                return this->data[this->rd_ptr-1];
+            }
+            
+            // need to say in the docs that repeated calls get the last element
+            return this->data[this->data_len-1];   
+        }
+
+        void write(uint8_t word) {
+            this->data[this->wr_ptr] = word;
+            this->wr_ptr++;
+        }
+
+        void init(void)
+        {
+            this->rd_ptr = 0;
+            this->wr_ptr = 0;
+            this->rd_buf = 0;
+            this->wr_buf = 0;
+        }
+
+        unsigned length(void) const {
+            return this->wr_ptr;
+        }
+};
+
+
 struct VectorBitStream : BitStream<VectorBitStream>
 {
     unsigned rd_ptr;
     std::vector<uint8_t> data;
 
     public:
-        VectorBitStream() : rd_ptr(0) {} 
+        VectorBitStream() : rd_ptr(0) {}
 
         uint8_t read(void) {
             this->rd_ptr++;
@@ -167,7 +206,7 @@ struct StringBitStream : BitStream<StringBitStream>
     std::stringstream& ss;
 
     public:
-        StringBitStream(std::stringstream& inp_stream) : ss(inp_stream) {} 
+        StringBitStream(std::stringstream& inp_stream) : ss(inp_stream) {}
 
         uint8_t read(void) {
             char c;
@@ -175,7 +214,7 @@ struct StringBitStream : BitStream<StringBitStream>
             return uint8_t(c);
         }
 
-        void write(uint8_t word) { 
+        void write(uint8_t word) {
             this->ss.write(reinterpret_cast<const char*>(&word), sizeof(uint8_t));
         }
 
@@ -196,6 +235,7 @@ struct StringBitStream : BitStream<StringBitStream>
 };
 
 
+// TODO: a lot of this can be made private to the implementation
 /*
  * LSZZ Tree
  */
@@ -208,7 +248,7 @@ struct LZSNode
 
     public:
         LZSNode() : parent(0), smaller(0), larger(0) {}
-        LZSNode(int p, int s, int l) : parent(p), smaller(s), larger(l) {} 
+        LZSNode(int p, int s, int l) : parent(p), smaller(s), larger(l) {}
 };
 
 

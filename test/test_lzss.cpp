@@ -64,7 +64,7 @@ TEST_CASE("test_stringbitstream_write_bit_pattern", "lzss")
 }
 
 
-TEST_CASE("test_stringbitstream_write_bits", "lzss")
+TEST_CASE("test_string_bitstream_write_bits", "lzss")
 {
     std::stringstream ss;
     StringBitStream test_stream(ss);
@@ -74,14 +74,13 @@ TEST_CASE("test_stringbitstream_write_bits", "lzss")
     test_stream.write_bits(code, 8);
     REQUIRE(test_stream.length() == 1);
 
-    //test_stream.to_file("str8.out");
+    //test_stream.to_file("str8.out");   // sanity check
 
     std::vector<uint8_t> str_vec;
     str_vec = stream_to_vec<uint8_t>(test_stream.ss);
     REQUIRE(str_vec.size() == 1);
     for(unsigned i = 0; i < str_vec.size(); ++i)
         REQUIRE(str_vec[i] == 0x80);
-
 
     // Reset stream and write 16 codes
     test_stream.init();
@@ -116,7 +115,7 @@ TEST_CASE("test_stringbitstream_write_bits", "lzss")
 }
 
 
-TEST_CASE("test_stringbitstream_read_bit", "lszz")
+TEST_CASE("test_string_bitstream_read_bit", "lszz")
 {
     // Test reading single bits 
 
@@ -186,6 +185,43 @@ TEST_CASE("test_vector_bitstream_write_bits", "lzss")
         REQUIRE(test_stream.data[i] == exp_vec[i]);
 }
 
+
+// This is what I assume I will need to deal with numpy arrays
+TEST_CASE("test_ptr_bitstream_write_bits", "lzss")
+{
+    // Allocate some memory. The PtrBitStream object doesn't do any 
+    // memory management. We just hand it an array and its length and 
+    // it works with that. Its the callers responsibility to handle the 
+    // memory management. We don't call delete[] in the dtor.
+
+    unsigned test_array_size = 64;
+    uint8_t* test_array = new uint8_t[test_array_size];
+
+    PtrBitStream test_stream(test_array, test_array_size);
+
+    uint32_t code = 0xFFFF8080;
+    uint32_t out_word;
+
+    // Write 8 bits of this code
+    test_stream.write_bits(code, 8);
+    REQUIRE(test_stream.length() == 1);
+
+    //test_stream.to_file("str8.out");
+    out_word = test_stream.read_bits(8);
+    REQUIRE(out_word == 0x80);
+
+    // Reset stream and write 16 codes
+    test_stream.init();
+    REQUIRE(test_stream.length() == 0);
+
+    test_stream.write_bits(code, 16);
+    REQUIRE(test_stream.length() == 2);
+
+
+
+
+    delete[] test_array;
+}
 
 
 

@@ -26,6 +26,10 @@ This is a description of the header formats used by the various compressors.
 | 8      | 4      | Total number of codes | 
 
 
+### LZ77
+Disregard this - I've left it for now in a non-working state.
+
+
 ## C++ Requirements 
 - C++17
 - GNU Make
