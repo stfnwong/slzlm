@@ -54,6 +54,9 @@ class Node:
 
         return s
 
+    def __len__(self) -> int:
+        return self.num_children()
+
     def dim(self) -> int:
         return self.split.dim()
 
@@ -129,7 +132,7 @@ def build_pre_sort(points: List[Point]) -> Optional[Node]:
 
 
 
-def build_sort_each_time(points: List[Point]) -> Optional[Node]:
+def build_tree_sort_each_time(points: List[Point]) -> Optional[Node]:
 
     def build(
         points: List[Point],
@@ -172,12 +175,16 @@ def build_sort_each_time(points: List[Point]) -> Optional[Node]:
 #
 
 
+# TODO: this data structure mixes two things - the nodes are in a list but they should
+# be connected by pointers
 class KDTree:
     def __init__(self, points: List[Point]):
-        self.nodes: List[Node] = []
-        self._build(0, len(points)-1, points, 0)
+        self.root = self._build(0, len(points)-1, points, 0)
 
-    def _build(self, idx_from: int, idx_to: int, points: List[Point], depth: int) -> None:
+    def __len__(self) -> int:
+        return len(self.root)
+
+    def _build(self, idx_from: int, idx_to: int, points: List[Point], depth: int) -> Node:
 
         axis = depth % points[0].dim()
         median = idx_from + ((idx_to - idx_from) // 2)
@@ -187,8 +194,25 @@ class KDTree:
         pp = sorted(points[idx_from:], key=lambda p: p.coords[axis])
         midpoint = pp[median]
 
-        node = Node(midpoint, axis, None, None)
-        node.left = self._build(idx_from, median, points, depth+1)
-        node.right = self._build(median+1, idx_to, points, depth+1)
+        # I've decided I don't know how to make this construction work...
+        node = Node(
+            midpoint,
+            axis,
+            self._build(idx_from, median, points, depth+1),
+            self._build(median+1, idx_to, points, depth+1)
+        )
+        #node = Node(midpoint, axis, None, None)
+        #node.left = self._build(idx_from, median, points, depth+1)
+        #node.right = self._build(median+1, idx_to, points, depth+1)
 
-        self.nodes.append(node)
+        return node
+
+
+if __name__ == "__main__":
+
+    points = [Point(p) for p in [(2, 3), (5, 4), (9, 6), (4, 7), (8, 1), (7, 2)]]
+
+    tree = build_tree_sort_each_time(points)
+
+    print(f"len(points): {len(points)}, len(tree): {len(tree)}")
+

@@ -2,6 +2,7 @@
 #
 # This one based on the example from Rosetta Code
 
+
 from dataclasses import dataclass
 from typing import Any, List, Optional, Self, Tuple, Union
 #from operator import itemgetter
@@ -30,12 +31,34 @@ class KDPoint:
 
 
 class KDNode:
-    __slots__ = ("split", "left", "right")
+    __slots__ = ("split", "point", "left", "right")
 
-    def __init__(self, split, left: Optional[Self], right: Optional[Self]):
+    def __init__(self, split, point: KDPoint, left: Optional[Self], right: Optional[Self]):
         self.split = split
+        self.point = point
         self.left = left
         self.right = right
+
+    def __str__(self) -> str:
+        s = "Node "
+        cur_level = 0
+        q = [(self, cur_level)]
+
+        while q:
+            cur_node, node_level = q.pop(0)
+
+            if node_level != cur_level:
+                s += " \n".ljust(node_level*2, " ")
+                cur_level = node_level
+
+            s += f"{cur_node.split}[{cur_node.point}] "
+            if cur_node.left:
+                q.append((cur_node.left, node_level+1))
+            if cur_node.right:
+                q.append((cur_node.right, node_level+1))
+
+        return s
+
 
 
 
@@ -44,11 +67,16 @@ class KDTree:
 
     def __init__(self, points: List[KDPoint]):
         #from pudb import set_trace; set_trace()
-        self.root = self._build(0, points)
         # save bounds here, if it comes to that
+
+        self.root = self._build_by_idx(0, points, 0, len(points))
+        #self.root = self._build(0, points)
 
     def __len__(self) -> int:
         return self._num_children()
+
+    def __str__(self) -> str:
+        return str(self.root)
 
     def _num_children(self) -> int:
         q = [self.root]
@@ -74,10 +102,11 @@ class KDTree:
         # Lets just do the sort each time for now and worry about pre-computation later
         #points.sort(key=itemgetter(split_dim))
         points.sort(key=lambda p: p.coords[split_dim])
-        # TODO: Not toally sure what this segment is doing... finding the "correct" midpoint?
+
         m = len(points) // 2
         d = points[m]
 
+        # TODO: Not toally sure what this segment is doing... finding the "correct" midpoint?
         while (m+1) < len(points) and points[m+1].coords[split_dim] == d.coords[split_dim]:
             m += 1
 
@@ -86,16 +115,48 @@ class KDTree:
 
         return KDNode(
             split_dim,
+            d,          # mid point
             self._build(s, points[:m]),
             self._build(s, points[m+1:])
         )
 
+    def _build_by_idx(
+        self,
+        split_dim: int,
+        points: List[KDPoint],
+        idx_from: int,
+        idx_to: int) -> Optional[KDNode]:
+
+        if idx_from == idx_to:
+            return None
+
+        points.sort(key=lambda p: p.coords[split_dim])
+        m = idx_from + (idx_to - idx_from) // 2
+        d = points[m]
+        while (m+1) < len(points) and points[m+1].coords[split_dim] == d.coords[split_dim]:
+            m += 1
+        d = points[m]
+
+
+        # TODO: forget about adjusting the midpoint for now
+
+        s = (split_dim+1) % len(d)
+
+        return KDNode(
+            split_dim,
+            d,
+            self._build_by_idx(s, points, idx_from, m),
+            self._build_by_idx(s, points, m+1, idx_to)
+        )
+
+
+
 
 if __name__ == "__main__":
 
-    #points = [KDPoint(x, y) for x, y in [(2, 3), (5, 4), (9, 6), (4, 7), (8, 1), (7, 2)]]
     points = [KDPoint(p) for p in [(2, 3), (5, 4), (9, 6), (4, 7), (8, 1), (7, 2)]]
 
     tree = KDTree(points)
 
     print(f"len(points): {len(points)}, len(tree): {len(tree)}")
+    print(tree)
