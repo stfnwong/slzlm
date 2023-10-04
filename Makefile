@@ -102,7 +102,7 @@ clean:
 	# Clean test programs
 	rm -fv $(TEST_BIN_DIR)/test_*
 	@find . -name '*.so' -exec rm -rf {} \;
-	@find . -name '__pycache__' -exec rm -rf {} \;
+	@find . -type d -name '__pycache__' -exec rm -rf {} \;
 
 
 print-%:

@@ -1,13 +1,13 @@
 # Sample KDTree
 
 from dataclasses import dataclass
-from typing import List, Optional, Self
+from typing import Iterable, List, Optional, Self, Tuple, Union
 
 
 
 @dataclass
 class Point:
-    coords: List[float]
+    coords: Union[List[float], Tuple[float]]
 
     # This only handles the 2-d case for now
     #def __init__(self, x: Iterable[float]):
@@ -28,12 +28,8 @@ class Point:
 class Node:
     split: Point
     cut_dim: int
-    left: Optional[Self]
-    right: Optional[Self]
-
-
-    def dim(self) -> int:
-        return self.split.dim()
+    left: Optional[Self] = None
+    right: Optional[Self] = None
 
     def __repr__(self) -> str:
         return f"Node({self.split})"
@@ -47,7 +43,7 @@ class Node:
             cur_node, node_level = q.pop(0)
 
             if node_level != cur_level:
-                s += "\n"
+                s += "\n".ljust(node_level*2, " ")
                 cur_level = node_level
 
             s += f"{cur_node.split}[{cur_node.cut_dim}] "
@@ -58,35 +54,29 @@ class Node:
 
         return s
 
+    def dim(self) -> int:
+        return self.split.dim()
+
+    def num_children(self) -> int:
+        q = [self]
+        count = 0
+
+        while q:
+            cur_node = q.pop(0)
+            count += 1
+            #print(f"cur_node: {repr(cur_node)}, count = {count}")
+            if cur_node.left:
+                q.append(cur_node.left)
+            if cur_node.right:
+                q.append(cur_node.right)
+
+        return count
 
 
 
-def build_test(points: List[Point], idx_from: int, idx_to: int, depth: int) -> Node:
-    axis = depth % points[0].dim()
-    median = idx_from + ((idx_to - idx_from) // 2)
-    count = idx_to - idx_from + 1
-
-    #pp = sorted(points[idx_from:], key=lambda p: p.coords[0])
-    pp = sorted(points, key=lambda p: p.coords[0])
-
-    print(f"median: {median}, count: {count}, len(points): {len(points)}, len(pp): {len(pp)}, idx_from: {idx_from}, idx_to: {idx_to}")
-
-    print(f"pp: {pp}")
-
-    midpoint = pp[median]
-    node = Node(midpoint, axis, None, None)
-
-    if count == 1:
-        return node
-
-    node.left = build_test(pp, idx_from, median, depth+1)
-    node.right = build_test(pp, median+1, idx_to, depth+1)
-
-    return node
 
 
-
-def build_pre_sort(points: List[Point]) -> Node:
+def build_pre_sort(points: List[Point]) -> Optional[Node]:
 
     def build(
         dim_sorted: List[List[int]],
@@ -94,7 +84,7 @@ def build_pre_sort(points: List[Point]) -> Node:
         idx_from: int,
         idx_to: int,
         depth: int
-    ) -> Node:
+    ) -> Optional[Node]:
         """
         dim_sorted: list of lists, where each inner list is the index of the sorted values
         for a given axis. For instance, set of 2-dimensional points will contain two lists
@@ -102,20 +92,26 @@ def build_pre_sort(points: List[Point]) -> Node:
         sorted order.
         """
 
+        #if idx_from == idx_to:
+        #    print(f"Modifying idx_to [{idx_to} -> {idx_to+1}]")
+        #    idx_to += 1
+
         axis = depth % points[0].dim()
-        median = idx_from + ((idx_to - idx_from) // 2)
+        median_idx = idx_from + ((idx_to - idx_from) // 2)
         count = idx_to - idx_from
-        midpoint = points[dim_sorted[axis][median]]
 
-        print(f"median: {median}, count: {count}, idx_from: {idx_from}, idx_to: {idx_to}")
-        print(f"midpoint: {midpoint}")
+        print(f"depth: {depth} axis: {axis} median_idx: {median_idx}, count: {count}, idx_from: {idx_from}, idx_to: {idx_to} range: {points[idx_from : idx_to]}")
 
-        node = Node(midpoint, axis, None, None)
+        midpoint = points[dim_sorted[axis][median_idx]]
+        node = Node(midpoint, axis)
+        print(f"current node at : {node.split}\n")
+
         if count <= 1:
             return node
 
-        node.left = build(dim_sorted, points, idx_from, median, depth+1)
-        node.right = build(dim_sorted, points, median+1, idx_to, depth+1)
+        node.left = build(dim_sorted, points, idx_from, median_idx-1, depth+1)
+        node.right = build(dim_sorted, points, median_idx+1, idx_to, depth+1)
+        #node.right = build(dim_sorted, points, median_idx+1, idx_to, depth+1)
 
         return node
 
@@ -125,13 +121,55 @@ def build_pre_sort(points: List[Point]) -> Node:
         for dim in range(points[0].dim())
     ]
 
+    print(dim_sorted)
+    print(" ")
+
     node = build(dim_sorted, points, 0, len(points)-1, 0)
     return node
 
 
 
+def build_sort_each_time(points: List[Point]) -> Optional[Node]:
+
+    def build(
+        points: List[Point],
+        idx_from: int,
+        idx_to: int,
+        depth: int
+    ) -> Optional[Node]:
+        axis = depth % points[0].dim()
+
+        points.sort(key=lambda p: p.coords[axis])
+        median_idx = idx_from + ((idx_to - idx_from) // 2)
+        midpoint = points[median_idx]
+        count = idx_to - idx_from
+
+        print(f"depth: {depth} axis: {axis} median_idx: {median_idx}, count: {count}, idx_from: {idx_from}, idx_to: {idx_to}")
+        print(f"points: {points}")
+        print(f"points[idx_from: median_idx] : {points[idx_from: median_idx]}")
+        print(f"points[median_idx: idx_to]   : {points[median_idx: idx_to]}")
+        print(" ")
+
+        node = Node(midpoint, axis, None, None)
+        if count <= 1:
+            return node
+
+        # TODO: don't need median_idx+1 due to python slicing?
+        node.left = build(points, idx_from, median_idx, depth+1)
+        node.right = build(points, median_idx, idx_to, depth+1)
+
+        return node
+
+    node = build(points, 0, len(points), 0)
+
+    return node
 
 
+
+#class kdtree:
+#    def __init__(self, points: List[Point]):
+#        pass
+#
 
 
 class KDTree:
@@ -154,35 +192,3 @@ class KDTree:
         node.right = self._build(median+1, idx_to, points, depth+1)
 
         self.nodes.append(node)
-
-
-
-if __name__ == "__main__":
-
-    #coords = [
-    #    (3, 1), (4, 2), (1, 3), (3, 3),
-    #    (5, 7), (7, 8), (1, 9), (8, 2),
-    #]
-
-    #coords = [(4, 4), (2, 7), (1,6), (5, 5)]
-    coords = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6)]
-    #coords = [(7, 4), (5, 8), (3, 6), (5, 5), (2, 3), (1, 1), (6, 6), (7, 6)]
-    #coords = [(10, 10), (5, 5), (1,1)]
-
-    points = [Point((x[0], x[1])) for x in coords]
-    nn = build_test(points, 0, len(points)-1, 0)
-    print(f"\n{nn}\n")
-
-    nn = build_pre_sort(points)
-    print(f"\n{nn}\n")
-
-
-    #from random import random
-    #num_points = 4
-    #xmax = 120; ymax = 119
-    #points = [Point((random() * xmax, random() * ymax)) for _ in range(num_points)]
-
-    ##from pudb import set_trace; set_trace()
-    #nn = build_test(points, 0, len(points)-1, 0)
-
-    #print(nn)

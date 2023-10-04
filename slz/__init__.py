@@ -4,6 +4,8 @@ so_path = "../build/lib.linux-x86_64-cpython-311"
 so_name = "slz.cpython-311-x86_64-linux-gnu.so"
 so_file = f"{so_path}/{so_name}"
 
+from .kdtree import *
+
 def __bootstrap__():
     global __bootstrap__, __loader__, __file__
     import pkg_resources, imp

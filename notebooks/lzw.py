@@ -92,7 +92,7 @@ print(f"bytes: {encoded[11:]}")
 # def lzw_decode(data: np.ndarray) -> str:
 # ```
 #
-# The underlying representation accepts a pointer to a `uint8_t` array, but is wrapped to accept a `pybind11::array_t<uint8_t>`. The wrapper function accepts an `np.ndarray` of bytes. This means that if we wish to read (for example) text files from disk, we need to perform a conversion 
+# The underlying representation accepts a pointer to a `uint8_t` array, but is wrapped to accept a `pybind11::array_t<uint8_t>`. The wrapper function accepts an `np.ndarray` of bytes. This means that if we wish to read (for example) text files from disk, we need to perform a conversion
 #
 # ```c++
 # pybind11::array_t<uint8_t> lzw_decode(const pybind11::array_t<uin8_t>& data)
@@ -124,7 +124,7 @@ with open(input_filename, "rb") as fp:
     text = fp.read()
 
 sample_len = 1024
-    
+
 substr = text[:sample_len]
 print(type(substr))
 print(substr)
