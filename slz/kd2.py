@@ -136,6 +136,8 @@ class KDTreeSlice(KDTreeBase):
             self._build(s, points[m+1:])
         )
 
+
+
 class KDTreeIdx(KDTreeBase):
 
     def __init__(self, points: Optional[List[KDPoint]]=None):
