@@ -4,9 +4,8 @@
 
 
 from dataclasses import dataclass
-from typing import Any, List, Optional, Self, Tuple, Union
-#from operator import itemgetter
-
+from typing import Any, List, Optional, Self
+from abc import ABC, abstractmethod
 
 
 @dataclass
@@ -61,16 +60,19 @@ class KDNode:
 
 
 
-
-# Tree structure
-class KDTree:
-
-    def __init__(self, points: List[KDPoint]):
+# Make a base class so that we can swap out build routines
+class KDTreeBase(ABC):
+    def __init__(self, points: Optional[List[KDPoint]]=None):
         #from pudb import set_trace; set_trace()
         # save bounds here, if it comes to that
 
-        self.root = self._build_by_idx(0, points, 0, len(points))
-        #self.root = self._build(0, points)
+        print(f"You called the base initializer you FUCK")
+        self.root = None
+
+        #if not points:
+        #    self.root = None
+        #else:
+        #    self.root = self._build(0, points, 0, len(points))
 
     def __len__(self) -> int:
         return self._num_children()
@@ -92,6 +94,20 @@ class KDTree:
 
         return count
 
+    @abstractmethod
+    def _build(self, split_dim: int, points: List[KDPoint], **kwargs) -> Optional[KDNode]:
+        raise NotImplementedError("Implement in derived class")
+
+
+
+# Tree structure
+class KDTreeSlice(KDTreeBase):
+
+    def __init__(self, points: Optional[List[KDPoint]]=None):
+        if not points:
+            self.root = None
+        else:
+            self.root = self._build(0, points)
 
     # NOTE: the Rosetta code version has bounds here... which are used in the find_nearest routine
     def _build(self, split_dim: int, points: List[KDPoint]) -> Optional[KDNode]:
@@ -120,7 +136,15 @@ class KDTree:
             self._build(s, points[m+1:])
         )
 
-    def _build_by_idx(
+class KDTreeIdx(KDTreeBase):
+
+    def __init__(self, points: Optional[List[KDPoint]]=None):
+        if not points:
+            self.root = None
+        else:
+            self.root = self._build(0, points, idx_from=0, idx_to=len(points))
+
+    def _build(
         self,
         split_dim: int,
         points: List[KDPoint],
@@ -145,8 +169,8 @@ class KDTree:
         return KDNode(
             split_dim,
             d,
-            self._build_by_idx(s, points, idx_from, m),
-            self._build_by_idx(s, points, m+1, idx_to)
+            self._build(s, points, idx_from, m),
+            self._build(s, points, m+1, idx_to)
         )
 
 
@@ -156,7 +180,11 @@ if __name__ == "__main__":
 
     points = [KDPoint(p) for p in [(2, 3), (5, 4), (9, 6), (4, 7), (8, 1), (7, 2)]]
 
-    tree = KDTree(points)
+    tree_slice = KDTreeSlice(points)
+    tree_idx = KDTreeIdx(points)
 
-    print(f"len(points): {len(points)}, len(tree): {len(tree)}")
-    print(tree)
+    print(f"[slice] len(points): {len(points)}, len(tree): {len(tree_slice)}")
+    print(tree_slice)
+
+    print(f"[idx] len(points): {len(points)}, len(tree): {len(tree_idx)}")
+    print(tree_idx)
